@@ -35,6 +35,7 @@ export async function addRule(rule) {
     findText: rule.findText || '',
     replaceText: rule.replaceText || '',
     enabled: rule.enabled !== undefined ? rule.enabled : true,
+    pinned: rule.pinned !== undefined ? rule.pinned : false,
     createdAt: Date.now(),
   };
   rules.push(newRule);
