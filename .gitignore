@@ -1,0 +1,29 @@
+# IDE & Editor
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Temp / scratch
+tmp/
+*.tmp
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# Migration scripts (dev only)
+migrate.js
