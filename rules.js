@@ -72,9 +72,11 @@ export function buildDNRRules(userRules) {
   let priority = 1;
 
   for (const rule of userRules) {
-    if (!rule.sourcePattern) continue;
+    if (!rule.sourcePattern && rule.type !== RULE_TYPES.REPLACE) continue;
 
-    const urlFilter = wildcardToUrlFilter(rule.sourcePattern);
+    const urlFilter = rule.sourcePattern ? wildcardToUrlFilter(rule.sourcePattern) : undefined;
+    // resourceTypes are assigned statically based on the rule type
+    const resourceTypes = rule.type === RULE_TYPES.REDIRECT ? ['main_frame'] : allResourceTypes();
 
     if (rule.type === RULE_TYPES.BLOCK) {
       dnrRules.push({
@@ -83,7 +85,7 @@ export function buildDNRRules(userRules) {
         action: { type: 'block' },
         condition: {
           urlFilter,
-          resourceTypes: allResourceTypes(),
+          resourceTypes,
         },
       });
     } else if (rule.type === RULE_TYPES.REDIRECT) {
@@ -97,7 +99,7 @@ export function buildDNRRules(userRules) {
         },
         condition: {
           urlFilter,
-          resourceTypes: allResourceTypes(),
+          resourceTypes,
         },
       });
     } else if (rule.type === RULE_TYPES.REPLACE) {
@@ -115,7 +117,7 @@ export function buildDNRRules(userRules) {
         },
         condition: {
           regexFilter,
-          resourceTypes: allResourceTypes(),
+          resourceTypes,
         },
       });
     }
@@ -123,7 +125,6 @@ export function buildDNRRules(userRules) {
   }
   return dnrRules;
 }
-
 // ── DNR Helpers ────────────────────────────────────────────────────────────
 
 function wildcardToUrlFilter(pattern) {

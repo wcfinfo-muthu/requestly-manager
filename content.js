@@ -4,18 +4,33 @@
   const ICON_PATH = chrome.runtime.getURL('icons/app48.png');
   let activeRule = null;
 
+  // Robust messaging wrapper to handle extension reloads/invalidated context
+  function safeSendMessage(message, callback) {
+    if (!chrome.runtime?.id) return; // Extension context invalidated
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          // Ignore silenced errors about receiving end not existing
+          return;
+        }
+        if (callback) callback(response);
+      });
+    } catch (e) {
+      // Catch "Extension context invalidated" or other runtime exceptions
+    }
+  }
+
   // Listen for changes from other contexts (Options page, Popup, etc.)
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'sync') {
       if (changes.extensionEnabled !== undefined || changes.rules !== undefined) {
-        chrome.runtime.sendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
+        safeSendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
           if (response && response.hasActiveRules) {
             activeRule = response.rule;
             renderIndicator();
           } else {
             const indicator = document.getElementById('requestly-active-indicator');
             if (indicator) indicator.remove();
-            // Don't auto-remove the popup here so user doesn't get surprised when toggling the rule off.
           }
         });
       }
@@ -24,7 +39,7 @@
 
 
   // Check with background if we have active rules for this URL
-  chrome.runtime.sendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
+  safeSendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
     if (response && response.hasActiveRules) {
       activeRule = response.rule;
       renderIndicator();
@@ -144,7 +159,7 @@
   }
 
   async function showPopup() {
-    if (document.querySelector('.requestly-popup-overlay')) return;
+    if (document.querySelector('.requestly-popup-container')) return;
 
     const counts = getResourceCounts();
     const loadingTime = getLoadingTime();
@@ -159,7 +174,6 @@
     container.className = 'requestly-popup-container';
 
     container.innerHTML = `
-      <div class="requestly-popup-container">
         <div class="requestly-popup-header">
           <div class="requestly-popup-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;" title="${ruleName.replace(/"/g, '&quot;')}">${ruleName}</div>
           <button class="requestly-close-btn">&times;</button>
@@ -242,6 +256,13 @@
 
     document.body.appendChild(container);
 
+    // Initialize position for dragging (switch from CSS bottom/right to explicit left/top)
+    const initialRect = container.getBoundingClientRect();
+    container.style.left = `${initialRect.left}px`;
+    container.style.top = `${initialRect.top}px`;
+    container.style.right = 'auto';
+    container.style.bottom = 'auto';
+
     // ── Popup Dragging Logic ───────────────────────────────────
     let isDraggingPopup = false;
     let popupStartX, popupStartY;
@@ -270,14 +291,12 @@
 
       container.style.left = `${popupInitialX + dx}px`;
       container.style.top = `${popupInitialY + dy}px`;
-      container.style.right = 'auto';
-      container.style.bottom = 'auto';
     };
 
     const popupMouseUpListener = () => {
       if (!isDraggingPopup) return;
       isDraggingPopup = false;
-      container.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.15)';
+      container.style.transition = 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.15)';
     };
 
     document.addEventListener('mousemove', popupMouseMoveListener);
@@ -323,7 +342,7 @@
 
     toggle.onchange = (e) => {
       if (currentRuleId) {
-        chrome.runtime.sendMessage({ type: 'TOGGLE_RULE', ruleId: currentRuleId });
+        safeSendMessage({ type: 'TOGGLE_RULE', ruleId: currentRuleId });
       } else {
         // Fallback: if no rule is bound, toggle the master switch
         chrome.storage.sync.set({ extensionEnabled: e.target.checked });
@@ -331,17 +350,17 @@
     };
 
     container.querySelector('#requestly-capture').onclick = () => {
-      chrome.runtime.sendMessage({ type: 'CAPTURE_TAB' });
+      safeSendMessage({ type: 'CAPTURE_TAB' });
       cleanup();
     };
 
     container.querySelector('#requestly-capture-full').onclick = () => {
-      chrome.runtime.sendMessage({ type: 'CAPTURE_FULL_TAB' });
+      safeSendMessage({ type: 'CAPTURE_FULL_TAB' });
       cleanup();
     };
 
     container.querySelector('#requestly-manage-rules').onclick = () => {
-      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', url: window.location.href });
+      safeSendMessage({ type: 'OPEN_OPTIONS_PAGE', url: window.location.href });
       cleanup();
     };
 
