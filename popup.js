@@ -49,6 +49,14 @@ masterToggle.addEventListener('change', () => {
   chrome.storage.sync.set({ extensionEnabled: masterToggle.checked });
 });
 
+// Sync UI if changed in another popup/tab
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.extensionEnabled !== undefined) {
+    if (masterToggle) masterToggle.checked = changes.extensionEnabled.newValue;
+  }
+});
+
+
 // ── Rule type switcher ─────────────────────────────────────────────────────
 quickType.addEventListener('change', updateFormFields);
 

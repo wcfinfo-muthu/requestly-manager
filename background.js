@@ -1,4 +1,4 @@
-import { getRules, buildDNRRules, doesRuleMatchUrl } from './rules.js';
+import { getRules, buildDNRRules, doesRuleMatchUrl, toggleRule } from './rules.js';
 
 const MAX_RULE_ID = 100000;
 
@@ -29,11 +29,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ hasActiveRules: false });
         return;
       }
-      const hasActive = rules.some(r => doesRuleMatchUrl(r, message.url));
-      sendResponse({ hasActiveRules: hasActive });
+      const activeRules = rules.filter(r => doesRuleMatchUrl(r, message.url));
+      const hasActive = activeRules.length > 0;
+      sendResponse({ hasActiveRules: hasActive, rule: hasActive ? activeRules[0] : null });
     })();
     return true; // async response
   }
+
+  if (message.type === 'TOGGLE_RULE') {
+    (async () => {
+      await toggleRule(message.ruleId);
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+
 
   if (message.type === 'OPEN_OPTIONS_PAGE') {
     let url = 'options.html';
@@ -47,7 +57,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     chrome.tabs.create({ url: chrome.runtime.getURL(url) });
   }
+
+  if (message.type === 'CAPTURE_TAB') {
+    chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
+      chrome.tabs.create({ url: dataUrl });
+    });
+  }
+
+  if (message.type === 'CAPTURE_FULL_TAB') {
+    chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
+      chrome.tabs.create({ url: dataUrl });
+    });
+  }
 });
+
 
 // ── Sync Dynamic declarativeNetRequest rules ───────────────────────────────
 async function syncDNRRules(userRules) {
