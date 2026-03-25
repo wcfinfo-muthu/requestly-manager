@@ -21,12 +21,12 @@
 
 | Feature | Description |
 |---|---|
-| **→ Redirect** | Transparently route requests between environments using wildcards |
-| **✕ Block** | Zero-latency request termination for trackers, ads, or unwanted scripts |
-| **⇄ Find & Replace** | Granular text substitution for dynamic URL parameters and hostnames |
-| **📌 Pinned Rules** | Pin up to **5 rules** for instant access from the popup menu |
-| **⚡ Quick Add** | Add rules instantly from the popup without opening the options page |
-| **🔍 Search** | Filter rules by name or URL pattern in the full dashboard |
+| **Redirect** | Transparently route requests between environments using wildcards |
+| **Block** | Zero-latency request termination for trackers, ads, or unwanted scripts |
+| **Find & Replace** | Granular text substitution for dynamic URL parameters and hostnames |
+| **Pinned Rules** | Pin up to **5 rules** for instant access from the popup menu |
+| **Quick Add** | Add rules instantly from the popup without opening the options page |
+| **Search** | Filter rules by name or URL pattern in the full dashboard |
 | **Import / Export** | Backup and restore your full ruleset as a JSON file |
 
 ---
@@ -94,21 +94,6 @@ Rules are stored and exported as a JSON array. Each rule supports the following 
 | `replaceText` | `string` | Replacement text (replace rules only) |
 | `enabled` | `boolean` | Whether the rule is active |
 | `pinned` | `boolean` | Whether the rule is pinned to the popup (max 5) |
-
----
-
-## 🏗 Project Structure
-
-```
-requestly/
-├── manifest.json        # Chrome Extension Manifest V3
-├── background.js        # Service worker — declarativeNetRequest integration
-├── rules.js             # Shared rule CRUD utilities (storage + DNR sync)
-├── popup.html/css/js    # Extension popup UI (Quick Add + Latest/Pinned tabs)
-├── options.html/css/js  # Full-page dashboard (rule table, import/export, about)
-├── icons/               # App icons (16, 32, 48, 128px)
-└── migrated_rules.json  # Example/migration ruleset (not loaded automatically)
-```
 
 ---
 
