@@ -30,9 +30,7 @@
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "storage",
-    "tabs",
-    "webNavigation"
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -62,8 +60,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.png"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "icons/*.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
