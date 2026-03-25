@@ -276,7 +276,15 @@ function badgeLabel(type) {
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   closeModal(); 
-  renderTable();
+  
+  // Check for auto-filter
+  const params = new URLSearchParams(window.location.search);
+  const filter = params.get('filter');
+  if (filter) {
+    searchInput.value = filter;
+  }
+  
+  await renderTable(searchInput.value);
 });

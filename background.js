@@ -36,7 +36,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'OPEN_OPTIONS_PAGE') {
-    chrome.runtime.openOptionsPage();
+    let url = 'options.html';
+    if (message.url) {
+      try {
+        const domain = new URL(message.url).hostname;
+        url += `?filter=${encodeURIComponent(domain)}`;
+      } catch (e) {
+        // ignore invalid urls
+      }
+    }
+    chrome.tabs.create({ url: chrome.runtime.getURL(url) });
   }
 });
 

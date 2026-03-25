@@ -80,7 +80,7 @@
       }
       e.stopPropagation();
       e.preventDefault();
-      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE' });
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE', url: window.location.href });
     });
   }
 })();
