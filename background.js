@@ -1,5 +1,4 @@
-// background.js — Service Worker for Request URL Rewriter
-import { getRules, buildDNRRules } from './rules.js';
+import { getRules, buildDNRRules, doesRuleMatchUrl } from './rules.js';
 
 const MAX_RULE_ID = 100000;
 
@@ -17,6 +16,27 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     const enabled = await getExtensionEnabled();
     await syncDNRRules(enabled ? rules : []);
     console.log('[URLRewriter] Rules updated. Active:', enabled ? rules.filter(r => r.enabled).length : 0);
+  }
+});
+
+// ── Messages ──────────────────────────────────────────────────────────────
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'CHECK_ACTIVE_RULES') {
+    (async () => {
+      const rules = await getRules();
+      const enabled = await getExtensionEnabled();
+      if (!enabled) {
+        sendResponse({ hasActiveRules: false });
+        return;
+      }
+      const hasActive = rules.some(r => doesRuleMatchUrl(r, message.url));
+      sendResponse({ hasActiveRules: hasActive });
+    })();
+    return true; // async response
+  }
+
+  if (message.type === 'OPEN_OPTIONS_PAGE') {
+    chrome.runtime.openOptionsPage();
   }
 });
 

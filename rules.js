@@ -124,7 +124,7 @@ export function buildDNRRules(userRules) {
   return dnrRules;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── DNR Helpers ────────────────────────────────────────────────────────────
 
 function wildcardToUrlFilter(pattern) {
   // Chrome's urlFilter supports | for start-anchor and * for wildcard natively
@@ -134,6 +134,35 @@ function wildcardToUrlFilter(pattern) {
 
 function escapeForRegex(str) {
   return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+}
+
+/**
+ * Checks if a rule matches the given URL for content script indicator logic.
+ */
+export function doesRuleMatchUrl(rule, url) {
+  if (!rule.enabled || !url) return false;
+
+  if (rule.type === RULE_TYPES.REPLACE) {
+    if (!rule.findText) return false;
+    return url.includes(rule.findText);
+  }
+
+  if (!rule.sourcePattern) return false;
+
+  // Convert wildcard pattern to a regex for checking current tab URL
+  const pattern = rule.sourcePattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // escape special chars (not *)
+    .replace(/\*/g, '.*'); // replace * with .*
+
+  try {
+    const re = new RegExp(`^${pattern}$`.replace('.*://', '(http|https)://'));
+    // If user provided *:// we match both, otherwise match exact.
+    // Also try without anchors if exact fail for better UX.
+    const reLoose = new RegExp(pattern.replace('.*://', '(http|https)://'));
+    return re.test(url) || reLoose.test(url);
+  } catch (e) {
+    return false;
+  }
 }
 
 function toDNRId(ruleId) {

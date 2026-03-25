@@ -1,0 +1,94 @@
+/* content.css — Styles for the Active Tab Indicator */
+
+#requestly-active-indicator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  z-index: 2147483647;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+  animation: requestly-pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.indicator-icon-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #0f1115;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+#requestly-active-indicator::before,
+#requestly-active-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  border: 1.95px solid #f97316;
+  opacity: 0;
+  animation: requestly-pulse-wave 2s infinite ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#requestly-active-indicator::after {
+  animation-delay: 1s;
+}
+
+#requestly-active-indicator:hover {
+  transform: scale(1.1);
+}
+
+#requestly-active-indicator img {
+  width: 120%;
+  height: 120%;
+  border-radius: 50%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+@keyframes requestly-pop-in {
+  from {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes requestly-pulse-wave {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+#requestly-active-indicator.hidden {
+  display: none !important;
+}
