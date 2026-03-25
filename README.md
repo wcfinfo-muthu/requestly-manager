@@ -15,6 +15,31 @@
   <img src="https://img.shields.io/badge/Chrome-Extension-yellow?style=flat-square&logo=googlechrome" />
 </p>
 
+## 📸 Visual Showcase
+
+![Extension Popup](screenshot/Screenshot-1.png)
+### ⚡ Quick Control Popup
+The extension popup provides rapid access to your ruleset. Designed for high efficiency, it allows you to toggle the global switch or individual rules with a single click.
+*Featuring a **Quick Add** input for zero-friction rule creation and a **Pinned Tab** for high-priority workflows.*
+
+---
+
+![Dashboard Rules](screenshot/Screenshot-3.png)
+### 🖥️ Management Dashboard
+A centralized engine to manage complex URL rewriting logic. Integrated search and granular controls help you scale your rulesets effortlessly.
+*High-performance management interface featuring **Search-as-you-type** and **Bulk Actions**.*
+
+![Import Export](screenshot/Screenshot-4.png)
+#### 📁 Data Sovereignty & Portability
+*Your rules are yours. Export to JSON for backup or share configurations with teammates in seconds.*
+
+---
+
+![Floating Dashboard](screenshot/Screenshot-7.png)
+### 📡 In-Page "Signal" Dash
+When Requestly is active, a floating action pulse appears in your active tab. Click it to open a glassmorphic dashboard for real-time site insights.
+*A sleek, draggable panel providing integrated site performance metrics and instant screen capture tools.*
+
 ---
 
 ## ✨ Features
@@ -24,6 +49,8 @@
 | **Redirect** | Transparently route requests between environments using wildcards |
 | **Block** | Zero-latency request termination for trackers, ads, or unwanted scripts |
 | **Find & Replace** | Granular text substitution for dynamic URL parameters and hostnames |
+| **Floating Dashboard** | Real-time performance metrics and rule toggles inside every active tab |
+| **Screenshots** | One-click visible or full-page screen capture from the floating menu |
 | **Pinned Rules** | Pin up to **5 rules** for instant access from the popup menu |
 | **Quick Add** | Add rules instantly from the popup without opening the options page |
 | **Search** | Filter rules by name or URL pattern in the full dashboard |
