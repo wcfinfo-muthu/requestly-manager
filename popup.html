@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Request URL Rewriter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <img src="icons/app32.png" alt="logo" class="logo" />
+      <span class="brand">URL <em>Rewriter</em></span>
+    </div>
+    <div class="header-right">
+      <label class="master-toggle" title="Enable / Disable all rules">
+        <input type="checkbox" id="masterToggle" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Quick Add Form -->
+  <div class="quick-add" id="quickAddSection">
+    <div class="section-title">Quick Add</div>
+    <div class="form-group">
+      <input type="text" id="quickSource" class="input" placeholder="Source URL pattern  e.g. *://staging.app.com/*" />
+    </div>
+    <div class="form-row">
+      <select id="quickType" class="select">
+        <option value="redirect">Redirect</option>
+        <option value="block">Block</option>
+        <option value="replace">Find & Replace</option>
+      </select>
+      <button class="btn btn-primary" id="addRuleBtn">+ Add</button>
+    </div>
+    <div class="form-group" id="destinationGroup">
+      <input type="text" id="quickDestination" class="input" placeholder="Destination URL  e.g. https://prod.app.com/" />
+    </div>
+    <div class="form-group hidden" id="replaceGroup">
+      <input type="text" id="quickFind" class="input" placeholder="Find text in URL" />
+      <input type="text" id="quickReplace" class="input mt-4" placeholder="Replace with" />
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Rules List -->
+  <div class="rules-section">
+    <div class="rules-header">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabLatest">Latest</button>
+        <button class="tab-btn" id="tabPinned">Pinned</button>
+      </div>
+      <span class="rules-count" id="rulesCount"></span>
+    </div>
+    <ul class="rules-list" id="rulesList">
+      <li class="empty-state" id="emptyState" style="list-style:none">
+        <div class="empty-icon">⚡</div>
+        <p>No rules yet. Add your first rule above.</p>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <button class="btn btn-ghost" id="openOptionsBtn">⚙&nbsp; Manage All Rules</button>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
