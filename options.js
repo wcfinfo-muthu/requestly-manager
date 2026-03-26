@@ -149,9 +149,8 @@ async function renderTable(query = '') {
     tr.className = rule.enabled ? '' : 'disabled-row';
     tr.dataset.id = rule.id;
 
-    const destDisplay = rule.type === RULE_TYPES.REPLACE
-      ? `${rule.findText} → ${rule.replaceText}`
-      : (rule.destination || '—');
+    const sourceDisplay = rule.type === RULE_TYPES.REPLACE ? rule.findText : rule.sourcePattern;
+    const destDisplay = rule.type === RULE_TYPES.REPLACE ? rule.replaceText : (rule.destination || '—');
 
     const pinFill = rule.pinned ? 'currentColor' : 'none';
 
@@ -164,7 +163,7 @@ async function renderTable(query = '') {
       </td>
       <td>${escapeHtml(rule.name)}</td>
       <td><span class="badge badge-${rule.type}">${badgeLabel(rule.type)}</span></td>
-      <td><span class="monospace truncate" title="${escapeHtml(rule.sourcePattern)}">${escapeHtml(rule.sourcePattern)}</span></td>
+      <td><span class="monospace truncate" title="${escapeHtml(sourceDisplay)}">${escapeHtml(sourceDisplay)}</span></td>
       <td><span class="monospace truncate" title="${escapeHtml(destDisplay)}">${escapeHtml(destDisplay)}</span></td>
       <td>
         <div class="action-btns">

@@ -74,7 +74,7 @@
               <th>Name</th>
               <th class="text-center">Type</th>
               <th>Source Pattern</th>
-              <th>Destination / Replace</th>
+              <th>Destination</th>
               <th style="width:100px">Actions</th>
             </tr>
           </thead>
@@ -243,8 +243,8 @@
         <div class="field" id="sourceField">
           <label class="label">Source URL Pattern</label>
           <input type="text" class="input" id="fieldSource" placeholder="*://example.com/*  (use * as wildcard)" />
-          <p class="field-hint">Wildcards: <code>*</code> matches any sequence. Use <code>*://</code> for both http &
-            https.</p>
+          <p class="field-hint">Wildcards: <code>*</code> matches any sequence. Use <code>/regex/</code> for Regular
+            Expressions.</p>
         </div>
         <div class="field" id="destinationField">
           <label class="label">Destination URL</label>
@@ -252,7 +252,8 @@
         </div>
         <div class="field hidden" id="findField">
           <label class="label">Find in URL</label>
-          <input type="text" class="input" id="fieldFind" placeholder="staging.myapp.com" />
+          <input type="text" class="input" id="fieldFind" placeholder="/regex/ or substring" />
+          <p class="field-hint">Use <code>/regex/</code> for backreferences (e.g. \1).</p>
         </div>
         <div class="field hidden" id="replaceField">
           <label class="label">Replace With</label>

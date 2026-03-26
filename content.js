@@ -135,13 +135,26 @@
 
     resources.forEach(res => {
       const type = res.initiatorType;
-      if (type === 'img' || type === 'image' || /\.(png|jpg|jpeg|gif|webp|svg)$/.test(res.name)) counts.image++;
-      else if (type === 'css' || res.name.endsWith('.css')) counts.css++;
-      else if (type === 'script' || res.name.endsWith('.js')) counts.js++;
-      else if (type === 'fetch' || type === 'xmlhttprequest') counts.fetch++;
-      else if (type === 'video' || type === 'audio') counts.media++;
-      else if (res.name.endsWith('.webmanifest') || res.name.includes('manifest.json')) counts.manifest++;
-      else counts.etc++;
+      const url = res.name.toLowerCase();
+      const urlPath = url.split('?')[0].split('#')[0]; // Strip query and hash
+
+      if (type === 'img' || type === 'image' || /\.(png|jpg|jpeg|gif|webp|svg|ico)$/.test(urlPath)) {
+        counts.image++;
+      } else if (/\.(woff|woff2|ttf|otf|eot)$/.test(urlPath)) {
+        counts.etc++;
+      } else if (urlPath.endsWith('.css')) {
+        counts.css++;
+      } else if (type === 'script' || urlPath.endsWith('.js')) {
+        counts.js++;
+      } else if (type === 'fetch' || type === 'xmlhttprequest') {
+        counts.fetch++;
+      } else if (type === 'video' || type === 'audio' || /\.(mp4|webm|mp3|wav|ogg)$/.test(urlPath)) {
+        counts.media++;
+      } else if (urlPath.endsWith('.webmanifest') || urlPath.endsWith('manifest.json')) {
+        counts.manifest++;
+      } else {
+        counts.etc++;
+      }
     });
 
     counts.docs = performance.getEntriesByType('navigation').length;

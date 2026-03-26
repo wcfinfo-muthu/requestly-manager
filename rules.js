@@ -74,40 +74,56 @@ export function buildDNRRules(userRules) {
   for (const rule of userRules) {
     if (!rule.sourcePattern && rule.type !== RULE_TYPES.REPLACE) continue;
 
-    const urlFilter = rule.sourcePattern ? wildcardToUrlFilter(rule.sourcePattern) : undefined;
-    // resourceTypes are assigned statically based on the rule type
-    const resourceTypes = rule.type === RULE_TYPES.REDIRECT ? ['main_frame'] : allResourceTypes();
+    const resourceTypes = allResourceTypes();
+    const id = toDNRId(rule.id);
 
     if (rule.type === RULE_TYPES.BLOCK) {
+      const condition = { resourceTypes };
+      if (isRegexPattern(rule.sourcePattern)) {
+        condition.regexFilter = cleanRegex(rule.sourcePattern);
+      } else {
+        condition.urlFilter = rule.sourcePattern;
+      }
+
       dnrRules.push({
-        id: toDNRId(rule.id),
+        id,
         priority,
         action: { type: 'block' },
-        condition: {
-          urlFilter,
-          resourceTypes,
-        },
+        condition,
       });
     } else if (rule.type === RULE_TYPES.REDIRECT) {
       if (!rule.destination) continue;
+      
+      const condition = { resourceTypes };
+      if (isRegexPattern(rule.sourcePattern)) {
+        condition.regexFilter = cleanRegex(rule.sourcePattern);
+      } else {
+        condition.regexFilter = escapeForRegex(rule.sourcePattern);
+      }
+
       dnrRules.push({
-        id: toDNRId(rule.id),
+        id,
         priority,
         action: {
           type: 'redirect',
-          redirect: { url: rule.destination },
+          redirect: {
+            regexSubstitution: rule.destination,
+          },
         },
-        condition: {
-          urlFilter,
-          resourceTypes,
-        },
+        condition,
       });
     } else if (rule.type === RULE_TYPES.REPLACE) {
-      // Replace uses regexSubstitution
       if (!rule.findText) continue;
-      const regexFilter = escapeForRegex(rule.findText);
+
+      const condition = { resourceTypes };
+      if (isRegexPattern(rule.findText)) {
+        condition.regexFilter = cleanRegex(rule.findText);
+      } else {
+        condition.regexFilter = escapeForRegex(rule.findText);
+      }
+
       dnrRules.push({
-        id: toDNRId(rule.id),
+        id,
         priority,
         action: {
           type: 'redirect',
@@ -115,21 +131,25 @@ export function buildDNRRules(userRules) {
             regexSubstitution: rule.replaceText || '',
           },
         },
-        condition: {
-          regexFilter,
-          resourceTypes,
-        },
+        condition,
       });
     }
     priority++;
   }
   return dnrRules;
 }
+
 // ── DNR Helpers ────────────────────────────────────────────────────────────
 
+function isRegexPattern(str) {
+  return typeof str === 'string' && str.startsWith('/') && str.endsWith('/');
+}
+
+function cleanRegex(str) {
+  return str.slice(1, -1);
+}
+
 function wildcardToUrlFilter(pattern) {
-  // Chrome's urlFilter supports | for start-anchor and * for wildcard natively
-  // Just pass through — user should use patterns like *://example.com/*
   return pattern;
 }
 
@@ -143,27 +163,67 @@ function escapeForRegex(str) {
 export function doesRuleMatchUrl(rule, url) {
   if (!rule.enabled || !url) return false;
 
+  let pattern = '';
+  let isRegex = false;
+
   if (rule.type === RULE_TYPES.REPLACE) {
     if (!rule.findText) return false;
-    return url.includes(rule.findText);
+    pattern = rule.findText;
+    isRegex = isRegexPattern(pattern);
+  } else {
+    if (!rule.sourcePattern) return false;
+    pattern = rule.sourcePattern;
+    isRegex = isRegexPattern(pattern);
   }
 
-  if (!rule.sourcePattern) return false;
+  // 1. Precise Match
+  let exactMatch = false;
+  
+  if (isRegex) {
+    try {
+      const re = new RegExp(cleanRegex(pattern));
+      exactMatch = re.test(url);
+    } catch (e) {
+      exactMatch = false;
+    }
+  } else {
+    const regexStr = pattern
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&') 
+      .replace(/\*/g, '.*'); 
 
-  // Convert wildcard pattern to a regex for checking current tab URL
-  const pattern = rule.sourcePattern
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // escape special chars (not *)
-    .replace(/\*/g, '.*'); // replace * with .*
+    try {
+      const re = new RegExp(`^${regexStr}$`.replace('.*://', '(http|https)://'));
+      const reLoose = new RegExp(regexStr.replace('.*://', '(http|https)://'));
+      exactMatch = re.test(url) || reLoose.test(url);
+    } catch (e) {
+      exactMatch = false;
+    }
+  }
 
+  if (exactMatch) return true;
+
+  // 2. Loose Domain Fallback (for sub-resource rules targeted at the current tab)
   try {
-    const re = new RegExp(`^${pattern}$`.replace('.*://', '(http|https)://'));
-    // If user provided *:// we match both, otherwise match exact.
-    // Also try without anchors if exact fail for better UX.
-    const reLoose = new RegExp(pattern.replace('.*://', '(http|https)://'));
-    return re.test(url) || reLoose.test(url);
+    const host = new URL(url).hostname;
+    if (host) {
+      // Clean up pattern to compare without slashes or escapes
+      const cleanPat = pattern.replace(/\\/g, '');
+      
+      if (cleanPat.includes(host)) return true;
+      
+      const parts = host.split('.');
+      if (parts.length >= 2) {
+        const root = parts.slice(-2).join('.');
+        if (root.length > 5 && cleanPat.includes(root)) {
+          return true;
+        }
+      }
+    }
   } catch (e) {
-    return false;
+    // Ignore invalid URLs
   }
+
+  return false;
 }
 
 function toDNRId(ruleId) {
