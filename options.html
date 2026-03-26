@@ -243,7 +243,8 @@
         <div class="field" id="sourceField">
           <label class="label">URL Pattern (Filter)</label>
           <input type="text" class="input" id="fieldSource" placeholder="*://staging.myapp.com/*" />
-          <p class="field-hint">Define which URLs to intercept. Use <code>*</code> as wildcard or <code>/regex/</code> for precise control.</p>
+          <p class="field-hint">Define which URLs to intercept. Use <code>*</code> as wildcard or <code>/regex/</code>
+            for precise control.</p>
         </div>
         <div class="field" id="destinationField">
           <label class="label">Redirect To</label>
@@ -251,13 +252,14 @@
         </div>
         <div class="field hidden" id="findField">
           <label class="label">Find Text</label>
-          <input type="text" class="input" id="fieldFind" placeholder="develop" />
-          <p class="field-hint">Supports <code>*</code> as wildcard or <code>/regex/</code> for capture groups (e.g. {$1}).</p>
+          <input type="text" class="input" id="fieldFind" placeholder="build-dev" />
+          <p class="field-hint">Find a substring to replace (e.g. <code>build-dev</code>). <b>Keep empty</b> if using Regex above or if URL Pattern and Find Text are the same.</p>
         </div>
         <div class="field hidden" id="replaceField">
           <label class="label">Replace With</label>
           <input type="text" class="input" id="fieldReplace" placeholder="build-prod" />
-          <p class="field-hint">What should it become? Use <code>{$1}</code> for backreferences.</p>
+          <p class="field-hint">What should it become? Use <code>{$1}</code>, <code>{$2}</code> etc. if using Regex
+            above.</p>
         </div>
       </div>
       <div class="modal-footer">

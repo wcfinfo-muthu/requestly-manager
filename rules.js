@@ -115,7 +115,7 @@ export function buildDNRRules(userRules) {
     } else if (rule.type === RULE_TYPES.REPLACE) {
       const condition = { resourceTypes };
       let finalRegex = '';
-      let substitution = prepareSubstitution(rule.replaceText);
+      let substitution = '';
 
       const sourceRegex = isRegexPattern(rule.sourcePattern) 
         ? cleanRegex(rule.sourcePattern) 
@@ -125,20 +125,21 @@ export function buildDNRRules(userRules) {
         // Full replace: Source -> Replace
         finalRegex = sourceRegex.startsWith('^') ? sourceRegex : '^' + sourceRegex;
         if (!finalRegex.endsWith('$')) finalRegex += '$';
+        substitution = prepareSubstitution(rule.replaceText, 0);
       } else {
         // Substring replace: Source (scope) -> Find (target) -> Replace
-        const findRegex = isRegexPattern(rule.findText)
-          ? cleanRegex(rule.findText) 
-          : escapeForRegex(rule.findText);
+        // Find Text only supports plain text and * wildcards (escaped as literal)
+        const findAsLiteral = escapeForRegex(rule.findText);
         
-        // Ensure source doesn't have an end-anchor so we can append wildcards for finding
+        // Ensure source doesn't have an end-anchor
         const baseSource = sourceRegex.replace(/\$$/, '');
         
-        // This regex finds the first occurrence of findRegex within a URL matched by baseSource
-        // The first group captures everything BEFORE the target text.
-        // Group structure: ^( (baseSource.*?) target ) (.*)$
-        finalRegex = `^((?:${baseSource}).*?)${findRegex.replace(/^\^/, '')}(.*)$`;
-        substitution = `\\1${substitution}\\2`;
+        // Match: prefix (Group 1) -> target -> suffix (Group 2)
+        // We use non-greedy matching .*? for the prefix
+        finalRegex = `^((?:${baseSource}).*?)${findAsLiteral}(.*)$`;
+        
+        // Substitute: \1 (prefix), ReplaceText, \2 (suffix)
+        substitution = `\\1${prepareSubstitution(rule.replaceText, 0)}\\2`;
       }
 
       dnrRules.push({
@@ -174,8 +175,10 @@ function escapeForRegex(str) {
   return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
 }
 
-function prepareSubstitution(str) {
-  return (str || '').replace(/\{?\$(\d)\}?/g, '\\$1');
+function prepareSubstitution(str, shift = 0) {
+  return (str || '').replace(/\{?\$(\d)\}?/g, (match, num) => {
+    return '\\' + (parseInt(num) + shift);
+  });
 }
 
 /**
