@@ -242,13 +242,13 @@
         </div>
         <div class="field" id="sourceField">
           <label class="label">URL Pattern (Filter)</label>
-          <input type="text" class="input" id="fieldSource" placeholder="*://staging.myapp.com/*" />
-          <p class="field-hint">Define which URLs to intercept. Use <code>*</code> as wildcard or <code>/regex/</code>
-            for precise control.</p>
+          <input type="text" class="input" id="fieldSource" placeholder="*://*.example.com/*" />
+          <p class="field-hint">Intercept URLs by <b>Contains</b> (example), <b>Wildcard</b> (<code>*</code>) or <b>Regex</b> (<code>/regex/</code>). Each <code>*</code> becomes <code>{$1}</code>, <code>{$2}</code>, etc.</p>
         </div>
         <div class="field" id="destinationField">
           <label class="label">Redirect To</label>
-          <input type="text" class="input" id="fieldDestination" placeholder="https://prod.myapp.com/page" />
+          <input type="text" class="input" id="fieldDestination" placeholder="https://{$2}.new-domain.com/{$3}" />
+          <p class="field-hint">What is the destination? Each <code>*</code> above can be replaced with its respective <code>{$1}</code>. (Main page only)</p>
         </div>
         <div class="field hidden" id="findField">
           <label class="label">Find Text</label>
@@ -258,8 +258,7 @@
         <div class="field hidden" id="replaceField">
           <label class="label">Replace With</label>
           <input type="text" class="input" id="fieldReplace" placeholder="build-prod" />
-          <p class="field-hint">What should it become? Use <code>{$1}</code>, <code>{$2}</code> etc. if using Regex
-            above.</p>
+          <p class="field-hint">What should it become? Use <code>${1}</code>, <code>${2}</code> etc. if using Regex above.</p>
         </div>
       </div>
       <div class="modal-footer">

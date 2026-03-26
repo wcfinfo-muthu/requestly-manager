@@ -74,15 +74,15 @@ export function buildDNRRules(userRules) {
   for (const rule of userRules) {
     if (!rule.sourcePattern && rule.type !== RULE_TYPES.REPLACE) continue;
 
-    const resourceTypes = allResourceTypes();
     const id = toDNRId(rule.id);
+    const resourceTypes = (rule.type === RULE_TYPES.REDIRECT) ? ['main_frame'] : allResourceTypes();
 
     if (rule.type === RULE_TYPES.BLOCK) {
       const condition = { resourceTypes };
       if (isRegexPattern(rule.sourcePattern)) {
         condition.regexFilter = cleanRegex(rule.sourcePattern);
       } else {
-        condition.urlFilter = rule.sourcePattern;
+        condition.regexFilter = escapeForRegex(rule.sourcePattern, false);
       }
 
       dnrRules.push({
@@ -93,12 +93,18 @@ export function buildDNRRules(userRules) {
       });
     } else if (rule.type === RULE_TYPES.REDIRECT) {
       if (!rule.destination) continue;
-      
+
       const condition = { resourceTypes };
+      let finalRegex = '';
+
       if (isRegexPattern(rule.sourcePattern)) {
-        condition.regexFilter = cleanRegex(rule.sourcePattern);
+        finalRegex = cleanRegex(rule.sourcePattern);
       } else {
-        condition.regexFilter = escapeForRegex(rule.sourcePattern);
+        const hasWildcard = rule.sourcePattern.includes('*');
+        // Capture wildcards so $1, $2 work
+        const escapedValue = escapeForRegex(rule.sourcePattern, hasWildcard);
+        // Only anchor if it's a "Wildcard" pattern, else it's a loose "Contains"
+        finalRegex = hasWildcard ? `^${escapedValue}$`.replace('.*://', '(http|https)://') : escapedValue;
       }
 
       dnrRules.push({
@@ -110,15 +116,15 @@ export function buildDNRRules(userRules) {
             regexSubstitution: prepareSubstitution(rule.destination),
           },
         },
-        condition,
+        condition: { ...condition, regexFilter: finalRegex },
       });
     } else if (rule.type === RULE_TYPES.REPLACE) {
       const condition = { resourceTypes };
       let finalRegex = '';
       let substitution = '';
 
-      const sourceRegex = isRegexPattern(rule.sourcePattern) 
-        ? cleanRegex(rule.sourcePattern) 
+      const sourceRegex = isRegexPattern(rule.sourcePattern)
+        ? cleanRegex(rule.sourcePattern)
         : escapeForRegex(rule.sourcePattern);
 
       if (!rule.findText) {
@@ -130,14 +136,14 @@ export function buildDNRRules(userRules) {
         // Substring replace: Source (scope) -> Find (target) -> Replace
         // Find Text only supports plain text and * wildcards (escaped as literal)
         const findAsLiteral = escapeForRegex(rule.findText);
-        
+
         // Ensure source doesn't have an end-anchor
         const baseSource = sourceRegex.replace(/\$$/, '');
-        
+
         // Match: prefix (Group 1) -> target -> suffix (Group 2)
         // We use non-greedy matching .*? for the prefix
         finalRegex = `^((?:${baseSource}).*?)${findAsLiteral}(.*)$`;
-        
+
         // Substitute: \1 (prefix), ReplaceText, \2 (suffix)
         substitution = `\\1${prepareSubstitution(rule.replaceText, 0)}\\2`;
       }
@@ -171,12 +177,14 @@ function wildcardToUrlFilter(pattern) {
   return pattern;
 }
 
-function escapeForRegex(str) {
-  return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+function escapeForRegex(str, captureWildcards = false) {
+  const escaped = str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  return captureWildcards ? escaped.replace(/\*/g, '(.*)') : escaped.replace(/\*/g, '.*');
 }
 
 function prepareSubstitution(str, shift = 0) {
-  return (str || '').replace(/\{?\$(\d)\}?/g, (match, num) => {
+  // Broadly supports {$1}, ${1}, or $1
+  return (str || '').replace(/(?:\$\{?|\{\$?|\$)(\d+)\}?/g, (match, num) => {
     return '\\' + (parseInt(num) + shift);
   });
 }
@@ -196,7 +204,7 @@ export function doesRuleMatchUrl(rule, url) {
 
   // 1. Precise Match
   let exactMatch = false;
-  
+
   if (isRegex) {
     try {
       const re = new RegExp(cleanRegex(pattern));
@@ -206,8 +214,8 @@ export function doesRuleMatchUrl(rule, url) {
     }
   } else {
     const regexStr = pattern
-      .replace(/[.+?^${}()|[\]\\]/g, '\\$&') 
-      .replace(/\*/g, '.*'); 
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*');
 
     try {
       const re = new RegExp(`^${regexStr}$`.replace('.*://', '(http|https)://'));
@@ -226,12 +234,12 @@ export function doesRuleMatchUrl(rule, url) {
     if (host) {
       // Clean up pattern to compare without slashes or escapes
       const cleanPat = pattern.replace(/\\/g, '');
-      
+
       // Use boundary-aware check for the hostname
       // This ensures we only match if the hostname is a distinct part of the pattern
       const escapedHost = host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const hostRegex = new RegExp('(^|[^a-z0-9.-])' + escapedHost + '($|[^a-z0-9.-])', 'i');
-      
+
       if (hostRegex.test(cleanPat)) return true;
     }
   } catch (e) {
