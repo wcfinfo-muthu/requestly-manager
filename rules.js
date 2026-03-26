@@ -107,7 +107,7 @@ export function buildDNRRules(userRules) {
         action: {
           type: 'redirect',
           redirect: {
-            regexSubstitution: rule.destination.replace(/\$(\d)/g, '\\$1'),
+            regexSubstitution: rule.destination.replace(/\{?\$(\d)\}?/g, '\\$1'),
           },
         },
         condition,
@@ -128,7 +128,7 @@ export function buildDNRRules(userRules) {
         action: {
           type: 'redirect',
           redirect: {
-            regexSubstitution: (rule.replaceText || '').replace(/\$(\d)/g, '\\$1'),
+            regexSubstitution: (rule.replaceText || '').replace(/\{?\$(\d)\}?/g, '\\$1'),
           },
         },
         condition,
