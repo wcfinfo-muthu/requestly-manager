@@ -31,7 +31,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       const activeRules = rules.filter(r => doesRuleMatchUrl(r, message.url));
       const hasActive = activeRules.length > 0;
-      sendResponse({ hasActiveRules: hasActive, rule: hasActive ? activeRules[0] : null });
+      sendResponse({ 
+        hasActiveRules: hasActive, 
+        rule: hasActive ? activeRules[0] : null,
+        activeCount: activeRules.length 
+      });
     })();
     return true; // async response
   }

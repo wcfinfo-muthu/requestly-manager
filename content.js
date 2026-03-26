@@ -3,6 +3,7 @@
 (function () {
   const ICON_PATH = chrome.runtime.getURL('icons/app48.png');
   let activeRule = null;
+  let activeCount = 0;
 
   // Robust messaging wrapper to handle extension reloads/invalidated context
   function safeSendMessage(message, callback) {
@@ -27,6 +28,7 @@
         safeSendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
           if (response && response.hasActiveRules) {
             activeRule = response.rule;
+            activeCount = response.activeCount || 1;
             renderIndicator();
           } else {
             const indicator = document.getElementById('requestly-active-indicator');
@@ -42,6 +44,7 @@
   safeSendMessage({ type: 'CHECK_ACTIVE_RULES', url: window.location.href }, (response) => {
     if (response && response.hasActiveRules) {
       activeRule = response.rule;
+      activeCount = response.activeCount || 1;
       renderIndicator();
     }
   });
@@ -136,7 +139,7 @@
     resources.forEach(res => {
       const type = res.initiatorType;
       const url = res.name.toLowerCase();
-      const urlPath = url.split('?')[0].split('#')[0]; // Strip query and hash
+      const urlPath = url.replace(/[?#].*$/, ''); // Strip query and hash reliably
 
       if (type === 'img' || type === 'image' || /\.(png|jpg|jpeg|gif|webp|svg|ico)$/.test(urlPath)) {
         counts.image++;
@@ -179,10 +182,13 @@
 
     // We bind the popup to the activeRule's name and state
     let ruleName = activeRule ? activeRule.name : 'Requestly';
-    ruleName = ruleName.replace(/\s*Local to Development/gi, '')
-      .replace(/\s*Local to Development/gi, '')
-      .trim();
-    if (!ruleName) ruleName = 'Active Rule';
+    
+    // If multiple rules match, show the count instead of just one name
+    if (activeCount > 1) {
+      ruleName = `${activeCount} Rules Active`;
+    } else {
+      ruleName = ruleName.replace(/\s*Local to Development/gi, '').trim() || 'Active Rule';
+    }
 
     const ruleEnabled = activeRule ? activeRule.enabled : true;
 

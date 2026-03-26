@@ -107,7 +107,7 @@ export function buildDNRRules(userRules) {
         action: {
           type: 'redirect',
           redirect: {
-            regexSubstitution: rule.destination.replace(/\{?\$(\d)\}?/g, '\\$1'),
+            regexSubstitution: prepareSubstitution(rule.destination),
           },
         },
         condition,
@@ -128,7 +128,7 @@ export function buildDNRRules(userRules) {
         action: {
           type: 'redirect',
           redirect: {
-            regexSubstitution: (rule.replaceText || '').replace(/\{?\$(\d)\}?/g, '\\$1'),
+            regexSubstitution: prepareSubstitution(rule.replaceText),
           },
         },
         condition,
@@ -155,6 +155,10 @@ function wildcardToUrlFilter(pattern) {
 
 function escapeForRegex(str) {
   return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+}
+
+function prepareSubstitution(str) {
+  return (str || '').replace(/\{?\$(\d)\}?/g, '\\$1');
 }
 
 /**
@@ -209,15 +213,12 @@ export function doesRuleMatchUrl(rule, url) {
       // Clean up pattern to compare without slashes or escapes
       const cleanPat = pattern.replace(/\\/g, '');
       
-      if (cleanPat.includes(host)) return true;
+      // Use boundary-aware check for the hostname
+      // This ensures we only match if the hostname is a distinct part of the pattern
+      const escapedHost = host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const hostRegex = new RegExp('(^|[^a-z0-9.-])' + escapedHost + '($|[^a-z0-9.-])', 'i');
       
-      const parts = host.split('.');
-      if (parts.length >= 2) {
-        const root = parts.slice(-2).join('.');
-        if (root.length > 5 && cleanPat.includes(root)) {
-          return true;
-        }
-      }
+      if (hostRegex.test(cleanPat)) return true;
     }
   } catch (e) {
     // Ignore invalid URLs
