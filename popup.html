@@ -31,7 +31,7 @@
   <div class="quick-add" id="quickAddSection">
     <div class="section-title">Quick Add</div>
     <div class="form-group" id="sourceGroup">
-      <input type="text" id="quickSource" class="input" placeholder="Source URL pattern  e.g. *://staging.app.com/*" />
+      <input type="text" id="quickSource" class="input" placeholder="URL Pattern (Filter)  e.g. *://staging.myapp.com/*" />
     </div>
     <div class="form-row">
       <select id="quickType" class="select">
@@ -43,11 +43,11 @@
     </div>
     <div class="form-group" id="destinationGroup">
       <input type="text" id="quickDestination" class="input"
-        placeholder="Destination URL  e.g. https://prod.app.com/" />
+        placeholder="Redirect To  e.g. https://prod.myapp.com/page" />
     </div>
     <div class="form-group hidden" id="replaceGroup">
-      <input type="text" id="quickFind" class="input" placeholder="/regex/ or substring" />
-      <input type="text" id="quickReplace" class="input mt-4" placeholder="prod.myapp.com" />
+      <input type="text" id="quickFind" class="input" placeholder="Find Text (Supports * or /regex/)" />
+      <input type="text" id="quickReplace" class="input mt-4" placeholder="Replace With (e.g. build-prod)" />
     </div>
   </div>
 

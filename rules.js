@@ -113,13 +113,32 @@ export function buildDNRRules(userRules) {
         condition,
       });
     } else if (rule.type === RULE_TYPES.REPLACE) {
-      if (!rule.findText) continue;
-
       const condition = { resourceTypes };
-      if (isRegexPattern(rule.findText)) {
-        condition.regexFilter = cleanRegex(rule.findText);
+      let finalRegex = '';
+      let substitution = prepareSubstitution(rule.replaceText);
+
+      const sourceRegex = isRegexPattern(rule.sourcePattern) 
+        ? cleanRegex(rule.sourcePattern) 
+        : escapeForRegex(rule.sourcePattern);
+
+      if (!rule.findText) {
+        // Full replace: Source -> Replace
+        finalRegex = sourceRegex.startsWith('^') ? sourceRegex : '^' + sourceRegex;
+        if (!finalRegex.endsWith('$')) finalRegex += '$';
       } else {
-        condition.regexFilter = escapeForRegex(rule.findText);
+        // Substring replace: Source (scope) -> Find (target) -> Replace
+        const findRegex = isRegexPattern(rule.findText)
+          ? cleanRegex(rule.findText) 
+          : escapeForRegex(rule.findText);
+        
+        // Ensure source doesn't have an end-anchor so we can append wildcards for finding
+        const baseSource = sourceRegex.replace(/\$$/, '');
+        
+        // This regex finds the first occurrence of findRegex within a URL matched by baseSource
+        // The first group captures everything BEFORE the target text.
+        // Group structure: ^( (baseSource.*?) target ) (.*)$
+        finalRegex = `^((?:${baseSource}).*?)${findRegex.replace(/^\^/, '')}(.*)$`;
+        substitution = `\\1${substitution}\\2`;
       }
 
       dnrRules.push({
@@ -127,11 +146,9 @@ export function buildDNRRules(userRules) {
         priority,
         action: {
           type: 'redirect',
-          redirect: {
-            regexSubstitution: prepareSubstitution(rule.replaceText),
-          },
+          redirect: { regexSubstitution: substitution },
         },
-        condition,
+        condition: { ...condition, regexFilter: finalRegex },
       });
     }
     priority++;
@@ -170,15 +187,9 @@ export function doesRuleMatchUrl(rule, url) {
   let pattern = '';
   let isRegex = false;
 
-  if (rule.type === RULE_TYPES.REPLACE) {
-    if (!rule.findText) return false;
-    pattern = rule.findText;
-    isRegex = isRegexPattern(pattern);
-  } else {
-    if (!rule.sourcePattern) return false;
-    pattern = rule.sourcePattern;
-    isRegex = isRegexPattern(pattern);
-  }
+  if (!rule.sourcePattern) return false;
+  pattern = rule.sourcePattern;
+  isRegex = isRegexPattern(pattern);
 
   // 1. Precise Match
   let exactMatch = false;

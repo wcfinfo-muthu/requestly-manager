@@ -68,8 +68,8 @@ function setType(type) {
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.type === type);
   });
-  sourceField.classList.toggle('hidden', type === RULE_TYPES.REPLACE);
-  destinationField.classList.toggle('hidden', type === RULE_TYPES.BLOCK || type === RULE_TYPES.REPLACE);
+  sourceField.classList.remove('hidden'); // Always show source
+  destinationField.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
   findField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
   replaceField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
 }
@@ -110,6 +110,20 @@ document.getElementById('saveRuleBtn').addEventListener('click', async () => {
     replaceText:   fieldReplace.value.trim(),
   };
 
+  if (!data.sourcePattern) {
+    fieldSource.focus();
+    fieldSource.classList.add('error-shake');
+    setTimeout(() => fieldSource.classList.remove('error-shake'), 600);
+    return;
+  }
+
+  if (currentType === RULE_TYPES.REPLACE && !data.replaceText) {
+    fieldReplace.focus();
+    fieldReplace.classList.add('error-shake');
+    setTimeout(() => fieldReplace.classList.remove('error-shake'), 600);
+    return;
+  }
+
   if (id) {
     await updateRule(Number(id), data);
   } else {
@@ -149,8 +163,17 @@ async function renderTable(query = '') {
     tr.className = rule.enabled ? '' : 'disabled-row';
     tr.dataset.id = rule.id;
 
-    const sourceDisplay = rule.type === RULE_TYPES.REPLACE ? rule.findText : rule.sourcePattern;
-    const destDisplay = rule.type === RULE_TYPES.REPLACE ? rule.replaceText : (rule.destination || '—');
+    // Display logic for table columns
+    let sourceDisplay = rule.sourcePattern || '*';
+    let destDisplay = rule.destination || '—';
+
+    if (rule.type === RULE_TYPES.REPLACE) {
+      if (rule.findText) {
+        destDisplay = `${rule.findText} ➜ ${rule.replaceText || 'null'}`;
+      } else {
+        destDisplay = `➜ ${rule.replaceText || 'null'}`;
+      }
+    }
 
     const pinFill = rule.pinned ? 'currentColor' : 'none';
 

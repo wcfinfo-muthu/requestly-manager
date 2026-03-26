@@ -241,23 +241,23 @@
           </div>
         </div>
         <div class="field" id="sourceField">
-          <label class="label">Source URL Pattern</label>
-          <input type="text" class="input" id="fieldSource" placeholder="*://example.com/*  (use * as wildcard)" />
-          <p class="field-hint">Wildcards: <code>*</code> matches any sequence. Use <code>/regex/</code> for Regular
-            Expressions.</p>
+          <label class="label">URL Pattern (Filter)</label>
+          <input type="text" class="input" id="fieldSource" placeholder="*://staging.myapp.com/*" />
+          <p class="field-hint">Define which URLs to intercept. Use <code>*</code> as wildcard or <code>/regex/</code> for precise control.</p>
         </div>
         <div class="field" id="destinationField">
-          <label class="label">Destination URL</label>
-          <input type="text" class="input" id="fieldDestination" placeholder="https://redirect-to.com/" />
+          <label class="label">Redirect To</label>
+          <input type="text" class="input" id="fieldDestination" placeholder="https://prod.myapp.com/page" />
         </div>
         <div class="field hidden" id="findField">
-          <label class="label">Find in URL</label>
-          <input type="text" class="input" id="fieldFind" placeholder="/regex/ or substring" />
-          <p class="field-hint">Use <code>/regex/</code> for backreferences (e.g. {$1}).</p>
+          <label class="label">Find Text</label>
+          <input type="text" class="input" id="fieldFind" placeholder="develop" />
+          <p class="field-hint">Supports <code>*</code> as wildcard or <code>/regex/</code> for capture groups (e.g. {$1}).</p>
         </div>
         <div class="field hidden" id="replaceField">
           <label class="label">Replace With</label>
-          <input type="text" class="input" id="fieldReplace" placeholder="prod.myapp.com" />
+          <input type="text" class="input" id="fieldReplace" placeholder="build-prod" />
+          <p class="field-hint">What should it become? Use <code>{$1}</code> for backreferences.</p>
         </div>
       </div>
       <div class="modal-footer">
