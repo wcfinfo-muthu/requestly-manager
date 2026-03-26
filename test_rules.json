@@ -1,28 +1,28 @@
 [
-  {
-    "id": 1,
-    "name": "Test: Active Indicator (Google)",
-    "type": "redirect",
-    "sourcePattern": "*://www.google.com/*",
-    "destination": "https://www.google.com/?requestly=active",
-    "enabled": true,
-    "pinned": true
-  },
-  {
-    "id": 2,
-    "name": "Test: Block Ads Example",
-    "type": "block",
-    "sourcePattern": "*://ads.doubleclick.net/*",
-    "enabled": true,
-    "pinned": false
-  },
-  {
-    "id": 3,
-    "name": "Test: Replace Query Param",
-    "type": "replace",
-    "findText": "debug=false",
-    "replaceText": "debug=true",
-    "enabled": false,
-    "pinned": false
-  }
+    {
+        "id": 1,
+        "name": "Test: Active Indicator (Google)",
+        "type": "redirect",
+        "sourcePattern": "*://www.google.com/*",
+        "destination": "https://www.google.com/?requestly=active",
+        "enabled": true,
+        "pinned": true
+    },
+    {
+        "id": 2,
+        "name": "Test: Block Ads Example",
+        "type": "block",
+        "sourcePattern": "*://ads.doubleclick.net/*",
+        "enabled": true,
+        "pinned": false
+    },
+    {
+        "id": 3,
+        "name": "Test: Replace Query Param",
+        "type": "replace",
+        "findText": "debug=false",
+        "replaceText": "debug=true",
+        "enabled": false,
+        "pinned": false
+    }
 ]

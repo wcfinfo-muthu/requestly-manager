@@ -1,5 +1,5 @@
 // popup.js — Popup UI logic
-import { getRules, addRule, deleteRule, toggleRule, updateRule, RULE_TYPES } from './rules.js';
+import {getRules, addRule, deleteRule, toggleRule, updateRule, RULE_TYPES} from './rules.js';
 
 const $ = id => document.getElementById(id);
 
@@ -23,38 +23,38 @@ const tabLatest = $('tabLatest');
 const tabPinned = $('tabPinned');
 
 tabLatest.addEventListener('click', () => {
-  currentTab = 'latest';
-  tabLatest.classList.add('active');
-  tabPinned.classList.remove('active');
-  renderRules();
+    currentTab = 'latest';
+    tabLatest.classList.add('active');
+    tabPinned.classList.remove('active');
+    renderRules();
 });
 
 tabPinned.addEventListener('click', () => {
-  currentTab = 'pinned';
-  tabPinned.classList.add('active');
-  tabLatest.classList.remove('active');
-  renderRules();
+    currentTab = 'pinned';
+    tabPinned.classList.add('active');
+    tabLatest.classList.remove('active');
+    renderRules();
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
-  chrome.storage.sync.get({ extensionEnabled: true }, ({ extensionEnabled }) => {
-    masterToggle.checked = extensionEnabled;
-  });
+    chrome.storage.sync.get({extensionEnabled: true}, ({extensionEnabled}) => {
+        masterToggle.checked = extensionEnabled;
+    });
 
-  await renderRules();
+    await renderRules();
 }
 
 // ── Master toggle ──────────────────────────────────────────────────────────
 masterToggle.addEventListener('change', () => {
-  chrome.storage.sync.set({ extensionEnabled: masterToggle.checked });
+    chrome.storage.sync.set({extensionEnabled: masterToggle.checked});
 });
 
 // Sync UI if changed in another popup/tab
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.extensionEnabled !== undefined) {
-    if (masterToggle) masterToggle.checked = changes.extensionEnabled.newValue;
-  }
+    if (area === 'sync' && changes.extensionEnabled !== undefined) {
+        if (masterToggle) masterToggle.checked = changes.extensionEnabled.newValue;
+    }
 });
 
 
@@ -62,97 +62,101 @@ chrome.storage.onChanged.addListener((changes, area) => {
 quickType.addEventListener('change', updateFormFields);
 
 function updateFormFields() {
-  const type = quickType.value;
-  sourceGroup.classList.remove('hidden'); // Always show source
-  destinationGroup.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
-  replaceGroup.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
+    const type = quickType.value;
+    sourceGroup.classList.remove('hidden'); // Always show source
+    destinationGroup.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
+    replaceGroup.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
 }
 
 // ── Add rule ────────────────────────────────────────────────────────────────
 addRuleBtn.addEventListener('click', async () => {
-  const source = quickSource.value.trim();
-  const type = quickType.value;
-  const dest = quickDestination.value.trim();
-  const find = quickFind.value.trim();
-  const rep = quickReplace.value.trim();
+    const source = quickSource.value.trim();
+    const type = quickType.value;
+    const dest = quickDestination.value.trim();
+    const find = quickFind.value.trim();
+    const rep = quickReplace.value.trim();
 
-  if (!source) {
-    quickSource.focus();
-    quickSource.classList.add('error-shake');
-    setTimeout(() => quickSource.classList.remove('error-shake'), 600);
-    return;
-  }
+    if (!source) {
+        quickSource.focus();
+        quickSource.classList.add('error-shake');
+        setTimeout(() => quickSource.classList.remove('error-shake'), 600);
+        return;
+    }
 
-  if (type === RULE_TYPES.REDIRECT && !dest) {
-    quickDestination.focus();
-    return;
-  }
+    if (type === RULE_TYPES.REDIRECT && !dest) {
+        quickDestination.focus();
+        return;
+    }
 
-  if (type === RULE_TYPES.REPLACE && !rep) {
-    quickReplace.focus();
-    quickReplace.classList.add('error-shake');
-    setTimeout(() => quickReplace.classList.remove('error-shake'), 600);
-    return;
-  }
+    if (type === RULE_TYPES.REPLACE && !rep) {
+        quickReplace.focus();
+        quickReplace.classList.add('error-shake');
+        setTimeout(() => quickReplace.classList.remove('error-shake'), 600);
+        return;
+    }
 
-  // Generate a short display name
-  const sourceToUse = (type === RULE_TYPES.REPLACE && find) ? find : source;
-  const name = sourceToUse.length > 30 ? sourceToUse.substring(0, 30) + '…' : sourceToUse;
+    // Generate a short display name
+    const sourceToUse = (type === RULE_TYPES.REPLACE && find) ? find : source;
+    const name = sourceToUse.length > 30 ? sourceToUse.substring(0, 30) + '…' : sourceToUse;
 
-  await addRule({
-    name,
-    type,
-    sourcePattern: source,
-    destination: dest,
-    findText: find,
-    replaceText: rep,
-    enabled: true,
-  });
+    await addRule({
+        name,
+        type,
+        sourcePattern: source,
+        destination: dest,
+        findText: find,
+        replaceText: rep,
+        enabled: true,
+    });
 
-  // Clear form
-  quickSource.value = '';
-  quickDestination.value = '';
-  quickFind.value = '';
-  quickReplace.value = '';
+    // Clear form
+    quickSource.value = '';
+    quickDestination.value = '';
+    quickFind.value = '';
+    quickReplace.value = '';
 
-  await renderRules();
+    await renderRules();
 });
 
 // Allow Enter key to submit quick add
-quickSource.addEventListener('keydown', e => { if (e.key === 'Enter') addRuleBtn.click(); });
-quickDestination.addEventListener('keydown', e => { if (e.key === 'Enter') addRuleBtn.click(); });
+quickSource.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addRuleBtn.click();
+});
+quickDestination.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addRuleBtn.click();
+});
 
 // ── Render rules ────────────────────────────────────────────────────────────
 async function renderRules() {
-  const allRules = await getRules();
+    const allRules = await getRules();
 
-  let rules = [];
-  if (currentTab === 'latest') {
-    rules = [...allRules].reverse().slice(0, 5);
-  } else {
-    rules = allRules.filter(r => r.pinned).reverse().slice(0, 5);
-  }
+    let rules = [];
+    if (currentTab === 'latest') {
+        rules = [...allRules].reverse().slice(0, 5);
+    } else {
+        rules = allRules.filter(r => r.pinned).reverse().slice(0, 5);
+    }
 
-  rulesCount.textContent = `${rules.length} rule${rules.length !== 1 ? 's' : ''}`;
+    rulesCount.textContent = `${rules.length} rule${rules.length !== 1 ? 's' : ''}`;
 
-  // Remove existing cards (keep emptyState)
-  Array.from(rulesList.querySelectorAll('.rule-card')).forEach(el => el.remove());
+    // Remove existing cards (keep emptyState)
+    Array.from(rulesList.querySelectorAll('.rule-card')).forEach(el => el.remove());
 
-  if (rules.length === 0) {
-    emptyState.style.display = '';
-    return;
-  }
-  emptyState.style.display = 'none';
+    if (rules.length === 0) {
+        emptyState.style.display = '';
+        return;
+    }
+    emptyState.style.display = 'none';
 
-  rules.forEach(rule => {
-    const li = document.createElement('li');
-    li.className = `rule-card${rule.enabled ? '' : ' disabled'}`;
-    li.dataset.id = rule.id;
+    rules.forEach(rule => {
+        const li = document.createElement('li');
+        li.className = `rule-card${rule.enabled ? '' : ' disabled'}`;
+        li.dataset.id = rule.id;
 
-    // Star/Pin filled if pinned
-    const pinFill = rule.pinned ? 'currentColor' : 'none';
+        // Star/Pin filled if pinned
+        const pinFill = rule.pinned ? 'currentColor' : 'none';
 
-    li.innerHTML = `
+        li.innerHTML = `
       <label class="rule-toggle master-toggle" title="Enable / Disable">
         <input type="checkbox" ${rule.enabled ? 'checked' : ''} />
         <span class="slider"></span>
@@ -178,49 +182,49 @@ async function renderRules() {
       </div>
     `;
 
-    // Toggle enable
-    li.querySelector('input[type=checkbox]').addEventListener('change', async () => {
-      await toggleRule(rule.id);
-      await renderRules();
-    });
+        // Toggle enable
+        li.querySelector('input[type=checkbox]').addEventListener('change', async () => {
+            await toggleRule(rule.id);
+            await renderRules();
+        });
 
-    // Toggle pin
-    li.querySelector('.pin').addEventListener('click', async () => {
-      // If pinning, block if already at max 5
-      if (!rule.pinned && allRules.filter(r => r.pinned).length >= 5) {
-        alert("You can only pin a maximum of 5 rules.");
-        return;
-      }
-      await updateRule(rule.id, { pinned: !rule.pinned });
-      await renderRules();
-    });
+        // Toggle pin
+        li.querySelector('.pin').addEventListener('click', async () => {
+            // If pinning, block if already at max 5
+            if (!rule.pinned && allRules.filter(r => r.pinned).length >= 5) {
+                alert("You can only pin a maximum of 5 rules.");
+                return;
+            }
+            await updateRule(rule.id, {pinned: !rule.pinned});
+            await renderRules();
+        });
 
-    // Delete
-    li.querySelector('.delete').addEventListener('click', async () => {
-      li.style.opacity = '0';
-      li.style.transform = 'translateX(8px)';
-      li.style.transition = 'all 0.2s';
-      await new Promise(r => setTimeout(r, 200));
-      await deleteRule(rule.id);
-      await renderRules();
-    });
+        // Delete
+        li.querySelector('.delete').addEventListener('click', async () => {
+            li.style.opacity = '0';
+            li.style.transform = 'translateX(8px)';
+            li.style.transition = 'all 0.2s';
+            await new Promise(r => setTimeout(r, 200));
+            await deleteRule(rule.id);
+            await renderRules();
+        });
 
-    rulesList.appendChild(li);
-  });
+        rulesList.appendChild(li);
+    });
 }
 
 // ── Open options ─────────────────────────────────────────────────────────────
 openOptionsBtn.addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
+    chrome.runtime.openOptionsPage();
 });
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function badgeLabel(type) {
-  return { redirect: 'Redirect', block: 'Block', replace: 'Replace' }[type] || type;
+    return {redirect: 'Redirect', block: 'Block', replace: 'Replace'}[type] || type;
 }
 
 init();

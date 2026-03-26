@@ -1,183 +1,185 @@
 // options.js — Options page logic
-import { getRules, addRule, updateRule, deleteRule, toggleRule, saveRules, RULE_TYPES } from './rules.js';
+import {getRules, addRule, updateRule, deleteRule, toggleRule, saveRules, RULE_TYPES} from './rules.js';
 
 // ── Page Navigation ────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(link => {
-  link.addEventListener('click', e => {
-    e.preventDefault();
-    const page = link.dataset.page;
-    document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    link.classList.add('active');
-    document.getElementById(`page-${page}`)?.classList.add('active');
-  });
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        const page = link.dataset.page;
+        document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(`page-${page}`)?.classList.add('active');
+    });
 });
 
 // ── Master Toggle ──────────────────────────────────────────────────────────
 const masterToggle = document.getElementById('masterToggle');
-chrome.storage.sync.get({ extensionEnabled: true }, ({ extensionEnabled }) => {
-  masterToggle.checked = extensionEnabled;
+chrome.storage.sync.get({extensionEnabled: true}, ({extensionEnabled}) => {
+    masterToggle.checked = extensionEnabled;
 });
 masterToggle.addEventListener('change', () => {
-  chrome.storage.sync.set({ extensionEnabled: masterToggle.checked });
+    chrome.storage.sync.set({extensionEnabled: masterToggle.checked});
 });
 
 // Sync UI if changed in another popup/tab
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.extensionEnabled !== undefined) {
-    masterToggle.checked = changes.extensionEnabled.newValue;
-  }
+    if (area === 'sync' && changes.extensionEnabled !== undefined) {
+        masterToggle.checked = changes.extensionEnabled.newValue;
+    }
 });
 
 
 // ── Modal State ────────────────────────────────────────────────────────────
-const modalOverlay   = document.getElementById('modalOverlay');
-const modalTitle     = document.getElementById('modalTitle');
-const editRuleId     = document.getElementById('editRuleId');
-const fieldName      = document.getElementById('fieldName');
-const fieldSource    = document.getElementById('fieldSource');
-const fieldDest      = document.getElementById('fieldDestination');
-const fieldFind      = document.getElementById('fieldFind');
-const fieldReplace   = document.getElementById('fieldReplace');
-const sourceField    = document.getElementById('sourceField');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const editRuleId = document.getElementById('editRuleId');
+const fieldName = document.getElementById('fieldName');
+const fieldSource = document.getElementById('fieldSource');
+const fieldDest = document.getElementById('fieldDestination');
+const fieldFind = document.getElementById('fieldFind');
+const fieldReplace = document.getElementById('fieldReplace');
+const sourceField = document.getElementById('sourceField');
 const destinationField = document.getElementById('destinationField');
-const findField      = document.getElementById('findField');
-const replaceField   = document.getElementById('replaceField');
-const typeSelector   = document.getElementById('typeSelector');
+const findField = document.getElementById('findField');
+const replaceField = document.getElementById('replaceField');
+const typeSelector = document.getElementById('typeSelector');
 let currentType = RULE_TYPES.REDIRECT;
 
 function openModal(rule = null) {
-  editRuleId.value = rule ? rule.id : '';
-  modalTitle.textContent = rule ? 'Edit Rule' : 'New Rule';
-  fieldName.value    = rule?.name    || '';
-  fieldSource.value  = rule?.sourcePattern || '';
-  fieldDest.value    = rule?.destination  || '';
-  fieldFind.value    = rule?.findText     || '';
-  fieldReplace.value = rule?.replaceText  || '';
-  setType(rule?.type || RULE_TYPES.REDIRECT);
-  modalOverlay.classList.remove('hidden');
-  fieldName.focus();
+    editRuleId.value = rule ? rule.id : '';
+    modalTitle.textContent = rule ? 'Edit Rule' : 'New Rule';
+    fieldName.value = rule?.name || '';
+    fieldSource.value = rule?.sourcePattern || '';
+    fieldDest.value = rule?.destination || '';
+    fieldFind.value = rule?.findText || '';
+    fieldReplace.value = rule?.replaceText || '';
+    setType(rule?.type || RULE_TYPES.REDIRECT);
+    modalOverlay.classList.remove('hidden');
+    fieldName.focus();
 }
 
 function closeModal() {
-  modalOverlay.classList.add('hidden');
+    modalOverlay.classList.add('hidden');
 }
 
 function setType(type) {
-  currentType = type;
-  document.querySelectorAll('.type-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.type === type);
-  });
-  sourceField.classList.remove('hidden'); // Always show source
-  destinationField.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
-  findField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
-  replaceField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    sourceField.classList.remove('hidden'); // Always show source
+    destinationField.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
+    findField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
+    replaceField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
 }
 
 // Type button switcher - using better event binding
 typeSelector.addEventListener('click', e => {
-  const btn = e.target.closest('.type-btn');
-  if (btn) {
-    e.preventDefault();
-    setType(btn.dataset.type);
-  }
+    const btn = e.target.closest('.type-btn');
+    if (btn) {
+        e.preventDefault();
+        setType(btn.dataset.type);
+    }
 });
 
 // Attach Modal Open/Close listeners
 const openBtn = document.getElementById('openModalBtn');
 if (openBtn) {
-  openBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    openModal();
-  });
+    openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+    });
 }
 
 document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
 document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
-modalOverlay?.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+modalOverlay?.addEventListener('click', e => {
+    if (e.target === modalOverlay) closeModal();
+});
 
 // ── Save Rule ──────────────────────────────────────────────────────────────
 document.getElementById('saveRuleBtn').addEventListener('click', async () => {
-  const id   = editRuleId.value;
-  const name = fieldName.value.trim() || fieldSource.value.trim().substring(0, 40) || 'Untitled';
+    const id = editRuleId.value;
+    const name = fieldName.value.trim() || fieldSource.value.trim().substring(0, 40) || 'Untitled';
 
-  const data = {
-    name,
-    type: currentType,
-    sourcePattern: fieldSource.value.trim(),
-    destination:   fieldDest.value.trim(),
-    findText:      fieldFind.value.trim(),
-    replaceText:   fieldReplace.value.trim(),
-  };
+    const data = {
+        name,
+        type: currentType,
+        sourcePattern: fieldSource.value.trim(),
+        destination: fieldDest.value.trim(),
+        findText: fieldFind.value.trim(),
+        replaceText: fieldReplace.value.trim(),
+    };
 
-  if (!data.sourcePattern) {
-    fieldSource.focus();
-    fieldSource.classList.add('error-shake');
-    setTimeout(() => fieldSource.classList.remove('error-shake'), 600);
-    return;
-  }
+    if (!data.sourcePattern) {
+        fieldSource.focus();
+        fieldSource.classList.add('error-shake');
+        setTimeout(() => fieldSource.classList.remove('error-shake'), 600);
+        return;
+    }
 
-  if (currentType === RULE_TYPES.REPLACE && !data.replaceText) {
-    fieldReplace.focus();
-    fieldReplace.classList.add('error-shake');
-    setTimeout(() => fieldReplace.classList.remove('error-shake'), 600);
-    return;
-  }
+    if (currentType === RULE_TYPES.REPLACE && !data.replaceText) {
+        fieldReplace.focus();
+        fieldReplace.classList.add('error-shake');
+        setTimeout(() => fieldReplace.classList.remove('error-shake'), 600);
+        return;
+    }
 
-  if (id) {
-    await updateRule(Number(id), data);
-  } else {
-    await addRule({ ...data, enabled: true });
-  }
-  closeModal();
-  await renderTable();
+    if (id) {
+        await updateRule(Number(id), data);
+    } else {
+        await addRule({...data, enabled: true});
+    }
+    closeModal();
+    await renderTable();
 });
 
 // ── Rules Table ────────────────────────────────────────────────────────────
-const rulesBody   = document.getElementById('rulesBody');
-const tableEmpty  = document.getElementById('tableEmpty');
+const rulesBody = document.getElementById('rulesBody');
+const tableEmpty = document.getElementById('tableEmpty');
 const searchInput = document.getElementById('searchInput');
 
 async function renderTable(query = '') {
-  let rules = await getRules();
-  if (query) {
-    const q = query.toLowerCase();
-    rules = rules.filter(r =>
-      r.name?.toLowerCase().includes(q) ||
-      r.sourcePattern?.toLowerCase().includes(q) ||
-      r.destination?.toLowerCase().includes(q) ||
-      r.findText?.toLowerCase().includes(q)
-    );
-  }
-
-  rulesBody.innerHTML = '';
-
-  if (rules.length === 0) {
-    tableEmpty.classList.remove('hidden');
-    return;
-  }
-  tableEmpty.classList.add('hidden');
-
-  rules.forEach(rule => {
-    const tr = document.createElement('tr');
-    tr.className = rule.enabled ? '' : 'disabled-row';
-    tr.dataset.id = rule.id;
-
-    // Display logic for table columns
-    let sourceDisplay = rule.sourcePattern || '*';
-    let destDisplay = rule.destination || '—';
-
-    if (rule.type === RULE_TYPES.REPLACE) {
-      if (rule.findText) {
-        destDisplay = `${rule.findText} ➜ ${rule.replaceText || 'null'}`;
-      } else {
-        destDisplay = `➜ ${rule.replaceText || 'null'}`;
-      }
+    let rules = await getRules();
+    if (query) {
+        const q = query.toLowerCase();
+        rules = rules.filter(r =>
+            r.name?.toLowerCase().includes(q) ||
+            r.sourcePattern?.toLowerCase().includes(q) ||
+            r.destination?.toLowerCase().includes(q) ||
+            r.findText?.toLowerCase().includes(q)
+        );
     }
 
-    const pinFill = rule.pinned ? 'currentColor' : 'none';
+    rulesBody.innerHTML = '';
 
-    tr.innerHTML = `
+    if (rules.length === 0) {
+        tableEmpty.classList.remove('hidden');
+        return;
+    }
+    tableEmpty.classList.add('hidden');
+
+    rules.forEach(rule => {
+        const tr = document.createElement('tr');
+        tr.className = rule.enabled ? '' : 'disabled-row';
+        tr.dataset.id = rule.id;
+
+        // Display logic for table columns
+        let sourceDisplay = rule.sourcePattern || '*';
+        let destDisplay = rule.destination || '—';
+
+        if (rule.type === RULE_TYPES.REPLACE) {
+            if (rule.findText) {
+                destDisplay = `${rule.findText} ➜ ${rule.replaceText || 'null'}`;
+            } else {
+                destDisplay = `➜ ${rule.replaceText || 'null'}`;
+            }
+        }
+
+        const pinFill = rule.pinned ? 'currentColor' : 'none';
+
+        tr.innerHTML = `
       <td>
         <label class="toggle">
           <input type="checkbox" ${rule.enabled ? 'checked' : ''}/>
@@ -205,116 +207,116 @@ async function renderTable(query = '') {
       </td>
     `;
 
-    // Toggle
-    tr.querySelector('input[type=checkbox]').addEventListener('change', async () => {
-      await toggleRule(rule.id);
-      await renderTable(searchInput.value);
-    });
+        // Toggle
+        tr.querySelector('input[type=checkbox]').addEventListener('change', async () => {
+            await toggleRule(rule.id);
+            await renderTable(searchInput.value);
+        });
 
-    // Toggle Pin
-    tr.querySelector('.pin').addEventListener('click', async () => {
-      const allRules = await getRules();
-      if (!rule.pinned && allRules.filter(r => r.pinned).length >= 5) {
-        alert("You can only pin a maximum of 5 rules.");
-        return;
-      }
-      await updateRule(rule.id, { pinned: !rule.pinned });
-      await renderTable(searchInput.value);
-    });
+        // Toggle Pin
+        tr.querySelector('.pin').addEventListener('click', async () => {
+            const allRules = await getRules();
+            if (!rule.pinned && allRules.filter(r => r.pinned).length >= 5) {
+                alert("You can only pin a maximum of 5 rules.");
+                return;
+            }
+            await updateRule(rule.id, {pinned: !rule.pinned});
+            await renderTable(searchInput.value);
+        });
 
-    // Edit
-    tr.querySelector('.edit').addEventListener('click', async () => {
-      const all = await getRules();
-      const r = all.find(x => x.id === rule.id);
-      if (r) openModal(r);
-    });
+        // Edit
+        tr.querySelector('.edit').addEventListener('click', async () => {
+            const all = await getRules();
+            const r = all.find(x => x.id === rule.id);
+            if (r) openModal(r);
+        });
 
-    // Delete
-    tr.querySelector('.delete').addEventListener('click', async () => {
-      if (!confirm(`Delete rule "${rule.name}"?`)) return;
-      await deleteRule(rule.id);
-      await renderTable(searchInput.value);
-    });
+        // Delete
+        tr.querySelector('.delete').addEventListener('click', async () => {
+            if (!confirm(`Delete rule "${rule.name}"?`)) return;
+            await deleteRule(rule.id);
+            await renderTable(searchInput.value);
+        });
 
-    rulesBody.appendChild(tr);
-  });
+        rulesBody.appendChild(tr);
+    });
 }
 
 searchInput.addEventListener('input', () => renderTable(searchInput.value));
 
 // ── Bulk Delete ────────────────────────────────────────────────────────────
 document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
-  if (!confirm('Delete ALL rules? This cannot be undone.')) return;
-  await saveRules([]);
-  await renderTable();
+    if (!confirm('Delete ALL rules? This cannot be undone.')) return;
+    await saveRules([]);
+    await renderTable();
 });
 
 // ── Export ─────────────────────────────────────────────────────────────────
 document.getElementById('exportBtn').addEventListener('click', async () => {
-  const rules = await getRules();
-  const json  = JSON.stringify(rules, null, 2);
-  const blob  = new Blob([json], { type: 'application/json' });
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement('a');
-  a.href      = url;
-  a.download  = `url-rewriter-rules-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+    const rules = await getRules();
+    const json = JSON.stringify(rules, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `url-rewriter-rules-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
 });
 
 // ── Import ─────────────────────────────────────────────────────────────────
 document.getElementById('importFile').addEventListener('change', async (e) => {
-  const file   = e.target.files[0];
-  const status = document.getElementById('importStatus');
-  if (!file) return;
+    const file = e.target.files[0];
+    const status = document.getElementById('importStatus');
+    if (!file) return;
 
-  try {
-    const text    = await file.text();
-    const imported = JSON.parse(text);
-    if (!Array.isArray(imported)) throw new Error('Expected a JSON array');
+    try {
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        if (!Array.isArray(imported)) throw new Error('Expected a JSON array');
 
-    const existing = await getRules();
-    const existingIds = new Set(existing.map(r => r.id));
+        const existing = await getRules();
+        const existingIds = new Set(existing.map(r => r.id));
 
-    let added = 0;
-    for (const rule of imported) {
-      if (rule.id && existingIds.has(rule.id)) {
-        rule.id = Date.now() + Math.floor(Math.random() * 1000); // new id
-      }
-      await addRule(rule);
-      added++;
+        let added = 0;
+        for (const rule of imported) {
+            if (rule.id && existingIds.has(rule.id)) {
+                rule.id = Date.now() + Math.floor(Math.random() * 1000); // new id
+            }
+            await addRule(rule);
+            added++;
+        }
+        status.textContent = `✓ Imported ${added} rule${added !== 1 ? 's' : ''} successfully`;
+        status.classList.remove('hidden');
+        setTimeout(() => status.classList.add('hidden'), 3000);
+        await renderTable();
+    } catch (err) {
+        status.style.color = 'var(--red)';
+        status.textContent = `✗ Import failed: ${err.message}`;
+        status.classList.remove('hidden');
     }
-    status.textContent = `✓ Imported ${added} rule${added !== 1 ? 's' : ''} successfully`;
-    status.classList.remove('hidden');
-    setTimeout(() => status.classList.add('hidden'), 3000);
-    await renderTable();
-  } catch (err) {
-    status.style.color = 'var(--red)';
-    status.textContent = `✗ Import failed: ${err.message}`;
-    status.classList.remove('hidden');
-  }
-  e.target.value = '';
+    e.target.value = '';
 });
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function escapeHtml(str = '') {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function badgeLabel(type) {
-  return { redirect: 'Redirect', block: 'Block', replace: 'Replace' }[type] || type;
+    return {redirect: 'Redirect', block: 'Block', replace: 'Replace'}[type] || type;
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  closeModal(); 
-  
-  // Check for auto-filter
-  const params = new URLSearchParams(window.location.search);
-  const filter = params.get('filter');
-  if (filter) {
-    searchInput.value = filter;
-  }
-  
-  await renderTable(searchInput.value);
+    closeModal();
+
+    // Check for auto-filter
+    const params = new URLSearchParams(window.location.search);
+    const filter = params.get('filter');
+    if (filter) {
+        searchInput.value = filter;
+    }
+
+    await renderTable(searchInput.value);
 });
