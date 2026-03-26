@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Request URL Rewriter</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="popup.css" />
 </head>
+
 <body>
   <!-- Header -->
   <header class="header">
@@ -26,7 +30,7 @@
   <!-- Quick Add Form -->
   <div class="quick-add" id="quickAddSection">
     <div class="section-title">Quick Add</div>
-    <div class="form-group">
+    <div class="form-group" id="sourceGroup">
       <input type="text" id="quickSource" class="input" placeholder="Source URL pattern  e.g. *://staging.app.com/*" />
     </div>
     <div class="form-row">
@@ -38,11 +42,12 @@
       <button class="btn btn-primary" id="addRuleBtn">+ Add</button>
     </div>
     <div class="form-group" id="destinationGroup">
-      <input type="text" id="quickDestination" class="input" placeholder="Destination URL  e.g. https://prod.app.com/" />
+      <input type="text" id="quickDestination" class="input"
+        placeholder="Destination URL  e.g. https://prod.app.com/" />
     </div>
     <div class="form-group hidden" id="replaceGroup">
-      <input type="text" id="quickFind" class="input" placeholder="Find text in URL" />
-      <input type="text" id="quickReplace" class="input mt-4" placeholder="Replace with" />
+      <input type="text" id="quickFind" class="input" placeholder="/regex/ or substring" />
+      <input type="text" id="quickReplace" class="input mt-4" placeholder="prod.myapp.com" />
     </div>
   </div>
 
@@ -73,4 +78,5 @@
 
   <script type="module" src="popup.js"></script>
 </body>
+
 </html>

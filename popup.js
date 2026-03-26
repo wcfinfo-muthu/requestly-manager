@@ -9,6 +9,7 @@ const quickType = $('quickType');
 const quickDestination = $('quickDestination');
 const quickFind = $('quickFind');
 const quickReplace = $('quickReplace');
+const sourceGroup = $('sourceGroup');
 const destinationGroup = $('destinationGroup');
 const replaceGroup = $('replaceGroup');
 const addRuleBtn = $('addRuleBtn');
@@ -62,6 +63,7 @@ quickType.addEventListener('change', updateFormFields);
 
 function updateFormFields() {
   const type = quickType.value;
+  sourceGroup.classList.toggle('hidden', type === RULE_TYPES.REPLACE);
   destinationGroup.classList.toggle('hidden', type === RULE_TYPES.REPLACE || type === RULE_TYPES.BLOCK);
   replaceGroup.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
 }
@@ -74,7 +76,7 @@ addRuleBtn.addEventListener('click', async () => {
   const find = quickFind.value.trim();
   const rep = quickReplace.value.trim();
 
-  if (!source) {
+  if (type !== RULE_TYPES.REPLACE && !source) {
     quickSource.focus();
     quickSource.classList.add('error-shake');
     setTimeout(() => quickSource.classList.remove('error-shake'), 600);
@@ -88,11 +90,14 @@ addRuleBtn.addEventListener('click', async () => {
 
   if (type === RULE_TYPES.REPLACE && !find) {
     quickFind.focus();
+    quickFind.classList.add('error-shake');
+    setTimeout(() => quickFind.classList.remove('error-shake'), 600);
     return;
   }
 
   // Generate a short display name
-  const name = source.length > 30 ? source.substring(0, 30) + '…' : source;
+  const sourceToUse = type === RULE_TYPES.REPLACE ? find : source;
+  const name = sourceToUse.length > 30 ? sourceToUse.substring(0, 30) + '…' : sourceToUse;
 
   await addRule({
     name,

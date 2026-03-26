@@ -178,7 +178,12 @@
     const loadingTime = getLoadingTime();
 
     // We bind the popup to the activeRule's name and state
-    const ruleName = activeRule ? activeRule.name : 'Requestly';
+    let ruleName = activeRule ? activeRule.name : 'Requestly';
+    ruleName = ruleName.replace(/\s*Local to Development/gi, '')
+      .replace(/\s*Local to Development/gi, '')
+      .trim();
+    if (!ruleName) ruleName = 'Active Rule';
+
     const ruleEnabled = activeRule ? activeRule.enabled : true;
 
     const container = document.createElement('div');

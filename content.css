@@ -95,6 +95,7 @@
 
 /* ── Premium Popup Styles ─────────────────────────────────── */
 .requestly-popup-container {
+  direction: ltr;
   position: fixed;
   bottom: 80px;
   right: 24px;
