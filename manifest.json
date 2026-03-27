@@ -32,7 +32,6 @@
         "declarativeNetRequestWithHostAccess",
         "storage",
         "activeTab",
-        "tabs",
         "downloads"
     ],
     "host_permissions": [
