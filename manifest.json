@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Request URL Rewriter",
+    "name": "Requestly: Browser Request Controller",
     "version": "1.0.0",
-    "description": "Rewrite, redirect, and block HTTP request URLs using powerful wildcard rules — your personal Requestly.",
+    "description": "A developer tool to control browser requests with redirect, replace, block, and rewrite rules using wildcard and Regex matching.",
     "icons": {
         "16": "icons/app16.png",
         "32": "icons/app32.png",
@@ -17,7 +17,7 @@
             "48": "icons/app48.png",
             "128": "icons/app128.png"
         },
-        "default_title": "Request URL Rewriter"
+        "default_title": "Requestly: Browser Request Controller"
     },
     "options_ui": {
         "page": "options.html",
