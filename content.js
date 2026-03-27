@@ -375,11 +375,18 @@
 
         container.querySelector('#requestly-capture').onclick = (e) => {
             e.stopPropagation();
-            container.style.display = 'none'; // Hide immediately for capture
+            const indicator = document.getElementById('requestly-active-indicator');
+            container.style.display = 'none';
+            if (indicator) indicator.style.display = 'none';
+
             setTimeout(() => {
                 safeSendMessage({type: 'CAPTURE_TAB'});
                 cleanup();
-            }, 100); // 100ms buffer for paint
+                // Restore indicator after a safe delay if needed
+                setTimeout(() => {
+                    if (indicator) indicator.style.display = '';
+                }, 500);
+            }, 100);
         };
 
         container.querySelector('#requestly-capture-full').onclick = (e) => {
