@@ -63,14 +63,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === 'CAPTURE_TAB') {
-        chrome.tabs.captureVisibleTab(null, {format: 'png'}, (dataUrl) => {
-            chrome.tabs.create({url: dataUrl});
+        const windowId = sender.tab ? sender.tab.windowId : null;
+        chrome.tabs.captureVisibleTab(windowId, {format: 'png'}, (dataUrl) => {
+            if (chrome.runtime.lastError) {
+                console.error('[URLRewriter] Capture failed:', chrome.runtime.lastError.message);
+                return;
+            }
+            downloadScreenshot(dataUrl);
         });
     }
 
-    if (message.type === 'CAPTURE_FULL_TAB') {
-        chrome.tabs.captureVisibleTab(null, {format: 'png'}, (dataUrl) => {
-            chrome.tabs.create({url: dataUrl});
+    if (message.type === 'INIT_FULL_PAGE_CAPTURE') {
+        const tabId = sender.tab.id;
+        chrome.tabs.sendMessage(tabId, {type: 'PREPARE_FULL_PAGE'}, (response) => {
+            if (response && response.success) {
+                captureNextChunk(tabId, sender.tab.windowId);
+            }
+        });
+    }
+
+    function captureNextChunk(tabId, windowId) {
+        chrome.tabs.captureVisibleTab(windowId, {format: 'png'}, (dataUrl) => {
+            chrome.tabs.sendMessage(tabId, {type: 'PROCESS_CHUNK', dataUrl}, (res) => {
+                if (res && !res.done) {
+                    captureNextChunk(tabId, windowId);
+                } else if (res && res.done) {
+                    downloadScreenshot(res.dataUrl, 'full-page');
+                }
+            });
+        });
+    }
+
+    function downloadScreenshot(dataUrl, prefix = 'visible') {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+        const filename = `requestly-${prefix}-${timestamp}.png`;
+
+        chrome.downloads.download({
+            url: dataUrl,
+            filename: filename,
+            saveAs: false
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('[URLRewriter] Download failed:', chrome.runtime.lastError.message);
+                chrome.tabs.create({url: dataUrl});
+            }
         });
     }
 });

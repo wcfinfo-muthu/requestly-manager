@@ -373,14 +373,23 @@
             }
         };
 
-        container.querySelector('#requestly-capture').onclick = () => {
-            safeSendMessage({type: 'CAPTURE_TAB'});
-            cleanup();
+        container.querySelector('#requestly-capture').onclick = (e) => {
+            e.stopPropagation();
+            container.style.display = 'none'; // Hide immediately for capture
+            setTimeout(() => {
+                safeSendMessage({type: 'CAPTURE_TAB'});
+                cleanup();
+            }, 100); // 100ms buffer for paint
         };
 
-        container.querySelector('#requestly-capture-full').onclick = () => {
-            safeSendMessage({type: 'CAPTURE_FULL_TAB'});
-            cleanup();
+        container.querySelector('#requestly-capture-full').onclick = (e) => {
+            e.stopPropagation();
+            container.style.display = 'none'; // Hide immediately for capture
+            document.getElementById('requestly-active-indicator').style.display = 'none';
+            setTimeout(() => {
+                safeSendMessage({type: 'INIT_FULL_PAGE_CAPTURE'});
+                cleanup();
+            }, 100);
         };
 
         container.querySelector('#requestly-manage-rules').onclick = () => {
@@ -404,5 +413,68 @@
             icon.style.transform = isCurrentlyCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
         };
     }
+
+    // ── Full Page Stitching Support ─────────────────────────────────
+    let stitchCanvas = null;
+    let stitchCtx = null;
+    let fullPageMetadata = null;
+
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'PREPARE_FULL_PAGE') {
+            const width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+            const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+            const viewHeight = window.innerHeight;
+            const viewWidth = window.innerWidth;
+            const dpr = window.devicePixelRatio || 1;
+
+            stitchCanvas = document.createElement('canvas');
+            stitchCanvas.width = width * dpr;
+            stitchCanvas.height = height * dpr;
+            stitchCtx = stitchCanvas.getContext('2d');
+
+            fullPageMetadata = {
+                width,
+                height,
+                viewHeight,
+                viewWidth,
+                dpr,
+                currentY: 0
+            };
+
+            window.scrollTo(0, 0);
+            // Wait for scroll and UI removal
+            setTimeout(() => {
+                sendResponse({success: true, metadata: fullPageMetadata});
+            }, 200);
+            return true;
+        }
+
+        if (message.type === 'PROCESS_CHUNK') {
+            const img = new Image();
+            img.onload = () => {
+                const {currentY, dpr, viewHeight, viewWidth} = fullPageMetadata;
+                stitchCtx.drawImage(img, 0, currentY * dpr, viewWidth * dpr, viewHeight * dpr);
+
+                fullPageMetadata.currentY += viewHeight;
+
+                if (fullPageMetadata.currentY < fullPageMetadata.height) {
+                    window.scrollTo(0, fullPageMetadata.currentY);
+                    setTimeout(() => {
+                        sendResponse({done: false});
+                    }, 100);
+                } else {
+                    const finalDataUrl = stitchCanvas.toDataURL('image/png');
+                    // Reset
+                    stitchCanvas = null;
+                    stitchCtx = null;
+                    document.getElementById('requestly-active-indicator').style.display = '';
+                    sendResponse({done: true, dataUrl: finalDataUrl});
+                }
+            };
+            img.src = message.dataUrl;
+            return true;
+        }
+    });
+
 })();
 
