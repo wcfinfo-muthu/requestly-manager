@@ -418,11 +418,22 @@
     let stitchCanvas = null;
     let stitchCtx = null;
     let fullPageMetadata = null;
+    let hiddenFixedElements = [];
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'PREPARE_FULL_PAGE') {
-            const width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-            const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+            // Robust dimensions for complex layouts
+            const width = Math.max(
+                document.documentElement.scrollWidth,
+                document.body.scrollWidth,
+                document.documentElement.clientWidth
+            );
+            const height = Math.max(
+                document.documentElement.scrollHeight,
+                document.body.scrollHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.offsetHeight
+            );
             const viewHeight = window.innerHeight;
             const viewWidth = window.innerWidth;
             const dpr = window.devicePixelRatio || 1;
@@ -438,33 +449,67 @@
                 viewHeight,
                 viewWidth,
                 dpr,
-                currentY: 0
+                isFirstFrame: true
             };
 
-            window.scrollTo(0, 0);
-            // Wait for scroll and UI removal
+            hiddenFixedElements = [];
+
+            // Jump to top instantly
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            
+            // Wait longer for complex sites like maps to stabilize
             setTimeout(() => {
                 sendResponse({success: true, metadata: fullPageMetadata});
-            }, 200);
+            }, 800);
             return true;
         }
 
         if (message.type === 'PROCESS_CHUNK') {
             const img = new Image();
             img.onload = () => {
-                const {currentY, dpr, viewHeight, viewWidth} = fullPageMetadata;
-                stitchCtx.drawImage(img, 0, currentY * dpr, viewWidth * dpr, viewHeight * dpr);
+                const {dpr, viewHeight, viewWidth, height} = fullPageMetadata;
+                const scrollY = window.pageYOffset || window.scrollY;
 
-                fullPageMetadata.currentY += viewHeight;
+                // Draw at the EXACT current scroll position
+                // Use floor/ceil to avoid sub-pixel seam gaps
+                stitchCtx.drawImage(img, 0, Math.floor(scrollY * dpr), viewWidth * dpr, viewHeight * dpr);
 
-                if (fullPageMetadata.currentY < fullPageMetadata.height) {
-                    window.scrollTo(0, fullPageMetadata.currentY);
+                // After the first frame is captured, we hide fixed/sticky elements so they don't repeat
+                if (fullPageMetadata.isFirstFrame) {
+                    document.querySelectorAll('*').forEach(el => {
+                        try {
+                            const style = window.getComputedStyle(el);
+                            if ((style.position === 'fixed' || style.position === 'sticky') &&
+                                el.id !== 'requestly-active-indicator' &&
+                                !el.classList.contains('requestly-popup-container')) {
+                                if (style.display !== 'none' && style.visibility !== 'hidden') {
+                                    hiddenFixedElements.push({el, originalVisibility: el.style.visibility});
+                                    el.style.visibility = 'hidden';
+                                }
+                            }
+                        } catch (e) {}
+                    });
+                    fullPageMetadata.isFirstFrame = false;
+                }
+
+                const nextY = scrollY + viewHeight;
+
+                if (nextY < height) {
+                    window.scrollTo({ top: nextY, left: 0, behavior: 'instant' });
+                    // Maps and dynamic content need significant time to redraw after scroll
                     setTimeout(() => {
                         sendResponse({done: false});
-                    }, 100);
+                    }, 600);
                 } else {
                     const finalDataUrl = stitchCanvas.toDataURL('image/png');
-                    // Reset
+                    
+                    // Cleanup: restore visibility of fixed elements
+                    hiddenFixedElements.forEach(item => {
+                        item.el.style.visibility = item.originalVisibility;
+                    });
+                    hiddenFixedElements = [];
+                    
+                    // Reset and cleanup
                     stitchCanvas = null;
                     stitchCtx = null;
                     document.getElementById('requestly-active-indicator').style.display = '';
