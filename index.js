@@ -27,7 +27,7 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
         }
     };
 
-    // Update connection status
+    // Attempt to connect and update state
     webBridgeCall({ type: 'GET_ENABLED' }).then(res => {
         const indicator = document.getElementById('extStatus');
         const dot = indicator?.querySelector('.status-dot');
@@ -36,8 +36,41 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
         if (indicator && !res.error) {
             indicator.classList.add('connected');
             text.textContent = 'Extension connected';
+            console.log('[Bridge] Connected successfully');
+        } else {
+            console.warn('[Bridge] Extension not detected. Using localStorage fallback.');
+            if (text) text.textContent = 'Demo Mode (Extension not detected)';
         }
     });
+
+    // Handle LOCAL storage mock if bridge is not available or failing
+    const originalGetRules = window.chrome.storage.sync.get;
+    window.chrome.storage.sync.get = (keys, callback) => {
+        webBridgeCall({ type: 'GET_RULES' }).then(res => {
+            if (res.error) {
+                // FALLBACK TO LOCALSTORAGE
+                const localData = localStorage.getItem('requestly_rules_fallback');
+                const rules = localData ? JSON.parse(localData) : [];
+                callback({ rules });
+            } else {
+                callback({ rules: res.rules || [] });
+            }
+        });
+    };
+
+    window.chrome.storage.sync.set = (data, callback) => {
+        const type = data.rules ? 'SET_RULES_BULK' : (data.extensionEnabled !== undefined ? 'SET_ENABLED' : null);
+        if (!type) return;
+
+        webBridgeCall({ type, ...data }).then(res => {
+            if (res.error) {
+                // FALLBACK TO LOCALSTORAGE
+                if (data.rules) localStorage.setItem('requestly_rules_fallback', JSON.stringify(data.rules));
+                console.log('[Bridge] Saved to local storage fallback');
+            }
+            if (callback) callback();
+        });
+    };
 }
 
 // ── Page Navigation ────────────────────────────────────────────────────────
