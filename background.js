@@ -34,6 +34,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.storage.sync.set({rules: message.rules}, () => sendResponse({success: true}));
         return true;
     }
+    if (message.type === 'SET_RULES_BULK') {
+        chrome.storage.sync.set({rules: message.rules}, () => sendResponse({success: true}));
+        return true;
+    }
     if (message.type === 'GET_ENABLED') {
         (async () => {
             const extensionEnabled = await getExtensionEnabled();

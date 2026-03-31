@@ -309,30 +309,40 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     const status = document.getElementById('importStatus');
     if (!file) return;
 
+    status.textContent = '⌛ Processing import...';
+    status.style.color = 'var(--cyan)';
+    status.classList.remove('hidden');
+
     try {
         const text = await file.text();
         const imported = JSON.parse(text);
-        if (!Array.isArray(imported)) throw new Error('Expected a JSON array');
+        if (!Array.isArray(imported)) throw new Error('Invalid format: Expected a JSON array of rules.');
 
         const existing = await getRules();
         const existingIds = new Set(existing.map(r => r.id));
 
-        let added = 0;
-        for (const rule of imported) {
-            if (rule.id && existingIds.has(rule.id)) {
-                rule.id = Date.now() + Math.floor(Math.random() * 1000); // new id
-            }
-            await addRule(rule);
-            added++;
-        }
-        status.textContent = `✓ Imported ${added} rule${added !== 1 ? 's' : ''} successfully`;
-        status.classList.remove('hidden');
-        setTimeout(() => status.classList.add('hidden'), 3000);
+        // Sanitize and generate new IDs for collisions
+        const cleanImported = imported.map(rule => ({
+            ...rule,
+            id: (rule.id && !existingIds.has(rule.id)) ? rule.id : (Date.now() + Math.floor(Math.random() * 10000)),
+            enabled: rule.enabled !== undefined ? rule.enabled : true,
+            createdAt: rule.createdAt || Date.now()
+        }));
+
+        const merged = [...existing, ...cleanImported];
+        
+        // Single bulk save call - much more reliable for web bridge
+        await saveRules(merged);
+        
+        status.textContent = `✓ Successfully imported ${cleanImported.length} rules.`;
+        status.style.color = 'var(--green)';
+        
+        setTimeout(() => status.classList.add('hidden'), 4000);
         await renderTable();
     } catch (err) {
-        status.style.color = 'var(--red)';
+        status.style.color = '#ef4444';
         status.textContent = `✗ Import failed: ${err.message}`;
-        status.classList.remove('hidden');
+        console.error('[ImportError]', err);
     }
     e.target.value = '';
 });
