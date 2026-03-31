@@ -62,11 +62,13 @@ masterToggle.addEventListener('change', () => {
 });
 
 // Sync UI if changed in another popup/tab
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'sync' && changes.extensionEnabled !== undefined) {
-        masterToggle.checked = changes.extensionEnabled.newValue;
-    }
-});
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync' && changes.extensionEnabled !== undefined) {
+            masterToggle.checked = changes.extensionEnabled.newValue;
+        }
+    });
+}
 
 
 // ── Modal State ────────────────────────────────────────────────────────────
