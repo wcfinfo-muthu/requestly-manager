@@ -20,7 +20,7 @@
         "default_title": "Requestly: Browser Request Controller"
     },
     "options_ui": {
-        "page": "options.html",
+        "page": "index.html",
         "open_in_tab": true
     },
     "background": {

@@ -1,5 +1,44 @@
 // options.js — Options page logic
-import {getRules, addRule, updateRule, deleteRule, toggleRule, saveRules, RULE_TYPES} from './rules.js';
+import {getRules, addRule, updateRule, deleteRule, toggleRule, saveRules, RULE_TYPES, webBridgeCall} from './rules.js';
+
+// ── Web Environment Mock ───────────────────────────────────────────────────
+if (typeof chrome === 'undefined' || !chrome.storage) {
+    window.chrome = window.chrome || {};
+    window.chrome.storage = {
+        sync: {
+            get: (keys, callback) => {
+                if (keys && keys.extensionEnabled !== undefined) {
+                    webBridgeCall({ type: 'GET_ENABLED' }).then(res => {
+                        callback({ extensionEnabled: res.extensionEnabled !== false });
+                    });
+                } else {
+                    callback(keys);
+                }
+            },
+            set: (data, callback) => {
+                if (data && data.extensionEnabled !== undefined) {
+                    webBridgeCall({ type: 'SET_ENABLED', enabled: data.extensionEnabled }).then(() => {
+                        if (callback) callback();
+                    });
+                } else if (callback) {
+                    callback();
+                }
+            }
+        }
+    };
+
+    // Update connection status
+    webBridgeCall({ type: 'GET_ENABLED' }).then(res => {
+        const indicator = document.getElementById('extStatus');
+        const dot = indicator?.querySelector('.status-dot');
+        const text = indicator?.querySelector('.status-text');
+        
+        if (indicator && !res.error) {
+            indicator.classList.add('connected');
+            text.textContent = 'Extension connected';
+        }
+    });
+}
 
 // ── Page Navigation ────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(link => {

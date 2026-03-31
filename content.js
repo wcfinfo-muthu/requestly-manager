@@ -5,6 +5,33 @@
     let activeRule = null;
     let activeCount = 0;
 
+    // ── Web App Bridge ───────────────────────────────────────────────────────
+    window.addEventListener('message', (event) => {
+        // Origins allowed to manage rules via the bridge
+        const ALLOWED_ORIGINS = [
+            'https://muthukrishnanperumal.github.io',
+            'http://muthukrishnanperumal.github.io' // Supporting both if needed
+        ];
+        
+        if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
+
+        // Check if we are on the allowed management page
+        if (!ALLOWED_ORIGINS.some(origin => window.location.origin === origin) && !window.location.protocol.startsWith('chrome-extension')) {
+            return;
+        }
+
+        const type = event.data.type;
+        if (['GET_RULES', 'SET_RULES', 'GET_ENABLED', 'SET_ENABLED'].includes(type)) {
+            safeSendMessage(event.data, (response) => {
+                window.postMessage({
+                    source: 'REQUESTLY_EXT',
+                    id: event.data.id,
+                    response: response
+                }, '*');
+            });
+        }
+    });
+
     // Robust messaging wrapper to handle extension reloads/invalidated context
     function safeSendMessage(message, callback) {
         if (!chrome.runtime?.id) return; // Extension context invalidated

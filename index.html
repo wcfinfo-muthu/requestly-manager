@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>URL Rewriter — Manage Rules</title>
-    <link rel="stylesheet" href="options.css" />
+    <link rel="stylesheet" href="index.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
             href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -24,6 +24,12 @@
         <a href="#" class="nav-item" data-page="import">⇅&nbsp; Import / Export</a>
         <a href="#" class="nav-item" data-page="about">◎&nbsp; About</a>
     </nav>
+    <div class="sidebar-status-wrap">
+        <div class="status-indicator" id="extStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Extension disconnected</span>
+        </div>
+    </div>
     <div class="sidebar-footer">
         <label class="master-toggle-wrap">
             <span>Extension Enabled</span>
@@ -243,12 +249,12 @@
             <div class="field" id="sourceField">
                 <label class="label">URL Pattern (Filter)</label>
                 <input type="text" class="input" id="fieldSource" placeholder="*://*.example.com/*" />
-                <p class="field-hint">Intercept URLs by <b>Contains</b> (example), <b>Wildcard</b> (<code>*</code>) or <b>Regex</b> (<code>/regex/</code>). Each <code>*</code> becomes <code>{$1}</code>, <code>{$2}</code>, etc.</p>
+                <p class="field-hint">Intercept URLs by <b>Contains</b> (example), <b>Wildcard</b> (<code>*</code>) or <b>Regex</b> (<code>/regex/</code>). Each <code>*</code> becomes <code>$1</code>, <code>$2</code>, etc.</p>
             </div>
             <div class="field" id="destinationField">
                 <label class="label">Redirect To</label>
-                <input type="text" class="input" id="fieldDestination" placeholder="https://{$2}.new-domain.com/{$3}" />
-                <p class="field-hint">What is the destination? Each <code>*</code> above can be replaced with its respective <code>{$1}</code>. (Main page only)</p>
+                <input type="text" class="input" id="fieldDestination" placeholder="https://$2.new-domain.com/$3" />
+                <p class="field-hint">What is the destination? Each <code>*</code> above can be replaced with its respective <code>$1</code>. (Main page only)</p>
             </div>
             <div class="field hidden" id="findField">
                 <label class="label">Find Text</label>
@@ -268,7 +274,7 @@
     </div>
 </div>
 
-<script type="module" src="options.js"></script>
+<script type="module" src="index.js"></script>
 </body>
 
 </html>
