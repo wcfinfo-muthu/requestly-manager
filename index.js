@@ -7,17 +7,32 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
     window.chrome.storage = {
         sync: {
             get: (keys, callback) => {
-                if (keys && keys.extensionEnabled !== undefined) {
+                const keysObj = typeof keys === 'string' ? { [keys]: null } : (Array.isArray(keys) ? keys.reduce((acc, k) => ({ ...acc, [k]: null }), {}) : keys);
+                
+                if (keysObj && keysObj.extensionEnabled !== undefined) {
                     webBridgeCall({ type: 'GET_ENABLED' }).then(res => {
                         callback({ extensionEnabled: res.extensionEnabled !== false });
                     });
+                } else if (keysObj && keysObj.rules !== undefined) {
+                    webBridgeCall({ type: 'GET_RULES' }).then(res => {
+                        if (res.error) {
+                            const localData = localStorage.getItem('requestly_rules_fallback');
+                            callback({ rules: localData ? JSON.parse(localData) : [] });
+                        } else {
+                            callback({ rules: res.rules || [] });
+                        }
+                    });
                 } else {
-                    callback(keys);
+                    callback(keysObj);
                 }
             },
             set: (data, callback) => {
-                if (data && data.extensionEnabled !== undefined) {
-                    webBridgeCall({ type: 'SET_ENABLED', enabled: data.extensionEnabled }).then(() => {
+                const type = data.rules ? 'SET_RULES_BULK' : (data.extensionEnabled !== undefined ? 'SET_ENABLED' : null);
+                if (type) {
+                    webBridgeCall({ type, ...data }).then(res => {
+                        if (res.error && data.rules) {
+                            localStorage.setItem('requestly_rules_fallback', JSON.stringify(data.rules));
+                        }
                         if (callback) callback();
                     });
                 } else if (callback) {
@@ -27,50 +42,17 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
         }
     };
 
-    // Attempt to connect and update state
+    // Update connection status UI
     webBridgeCall({ type: 'GET_ENABLED' }).then(res => {
         const indicator = document.getElementById('extStatus');
-        const dot = indicator?.querySelector('.status-dot');
         const text = indicator?.querySelector('.status-text');
-        
         if (indicator && !res.error) {
             indicator.classList.add('connected');
-            text.textContent = 'Extension connected';
-            console.log('[Bridge] Connected successfully');
-        } else {
-            console.warn('[Bridge] Extension not detected. Using localStorage fallback.');
-            if (text) text.textContent = 'Demo Mode (Extension not detected)';
+            if (text) text.textContent = 'Extension connected';
+        } else if (text) {
+            text.textContent = 'Demo Mode (Extension not detected)';
         }
     });
-
-    // Handle LOCAL storage mock if bridge is not available or failing
-    const originalGetRules = window.chrome.storage.sync.get;
-    window.chrome.storage.sync.get = (keys, callback) => {
-        webBridgeCall({ type: 'GET_RULES' }).then(res => {
-            if (res.error) {
-                // FALLBACK TO LOCALSTORAGE
-                const localData = localStorage.getItem('requestly_rules_fallback');
-                const rules = localData ? JSON.parse(localData) : [];
-                callback({ rules });
-            } else {
-                callback({ rules: res.rules || [] });
-            }
-        });
-    };
-
-    window.chrome.storage.sync.set = (data, callback) => {
-        const type = data.rules ? 'SET_RULES_BULK' : (data.extensionEnabled !== undefined ? 'SET_ENABLED' : null);
-        if (!type) return;
-
-        webBridgeCall({ type, ...data }).then(res => {
-            if (res.error) {
-                // FALLBACK TO LOCALSTORAGE
-                if (data.rules) localStorage.setItem('requestly_rules_fallback', JSON.stringify(data.rules));
-                console.log('[Bridge] Saved to local storage fallback');
-            }
-            if (callback) callback();
-        });
-    };
 }
 
 // ── Page Navigation ────────────────────────────────────────────────────────
@@ -81,28 +63,35 @@ document.querySelectorAll('.nav-item').forEach(link => {
         document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         link.classList.add('active');
-        document.getElementById(`page-${page}`)?.classList.add('active');
+        const pageTarget = document.getElementById(`page-${page}`);
+        if (pageTarget) pageTarget.classList.add('active');
     });
 });
 
 // ── Master Toggle ──────────────────────────────────────────────────────────
 const masterToggle = document.getElementById('masterToggle');
 chrome.storage.sync.get({extensionEnabled: true}, ({extensionEnabled}) => {
-    masterToggle.checked = extensionEnabled;
+    if (masterToggle) masterToggle.checked = extensionEnabled;
 });
-masterToggle.addEventListener('change', () => {
-    chrome.storage.sync.set({extensionEnabled: masterToggle.checked});
-});
+if (masterToggle) {
+    masterToggle.addEventListener('change', () => {
+        chrome.storage.sync.set({extensionEnabled: masterToggle.checked});
+    });
+}
 
 // Sync UI if changed in another popup/tab
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync' && changes.extensionEnabled !== undefined) {
-            masterToggle.checked = changes.extensionEnabled.newValue;
+        if (area === 'sync') {
+            if (changes.extensionEnabled !== undefined && masterToggle) {
+                masterToggle.checked = changes.extensionEnabled.newValue;
+            }
+            if (changes.rules !== undefined) {
+                renderTable(document.getElementById('searchInput')?.value || '');
+            }
         }
     });
 }
-
 
 // ── Modal State ────────────────────────────────────────────────────────────
 const modalOverlay = document.getElementById('modalOverlay');
@@ -121,6 +110,7 @@ const typeSelector = document.getElementById('typeSelector');
 let currentType = RULE_TYPES.REDIRECT;
 
 function openModal(rule = null) {
+    if (!modalOverlay) return;
     editRuleId.value = rule ? rule.id : '';
     modalTitle.textContent = rule ? 'Edit Rule' : 'New Rule';
     fieldName.value = rule?.name || '';
@@ -134,7 +124,7 @@ function openModal(rule = null) {
 }
 
 function closeModal() {
-    modalOverlay.classList.add('hidden');
+    if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
 function setType(type) {
@@ -142,22 +132,22 @@ function setType(type) {
     document.querySelectorAll('.type-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.type === type);
     });
-    sourceField.classList.remove('hidden'); // Always show source
-    destinationField.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
-    findField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
-    replaceField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
+    if (sourceField) sourceField.classList.remove('hidden');
+    if (destinationField) destinationField.classList.toggle('hidden', type !== RULE_TYPES.REDIRECT);
+    if (findField) findField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
+    if (replaceField) replaceField.classList.toggle('hidden', type !== RULE_TYPES.REPLACE);
 }
 
-// Type button switcher - using better event binding
-typeSelector.addEventListener('click', e => {
-    const btn = e.target.closest('.type-btn');
-    if (btn) {
-        e.preventDefault();
-        setType(btn.dataset.type);
-    }
-});
+if (typeSelector) {
+    typeSelector.addEventListener('click', e => {
+        const btn = e.target.closest('.type-btn');
+        if (btn) {
+            e.preventDefault();
+            setType(btn.dataset.type);
+        }
+    });
+}
 
-// Attach Modal Open/Close listeners
 const openBtn = document.getElementById('openModalBtn');
 if (openBtn) {
     openBtn.addEventListener('click', (e) => {
@@ -173,41 +163,44 @@ modalOverlay?.addEventListener('click', e => {
 });
 
 // ── Save Rule ──────────────────────────────────────────────────────────────
-document.getElementById('saveRuleBtn').addEventListener('click', async () => {
-    const id = editRuleId.value;
-    const name = fieldName.value.trim() || fieldSource.value.trim().substring(0, 40) || 'Untitled';
+const saveRuleBtn = document.getElementById('saveRuleBtn');
+if (saveRuleBtn) {
+    saveRuleBtn.addEventListener('click', async () => {
+        const id = editRuleId.value;
+        const name = fieldName.value.trim() || fieldSource.value.trim().substring(0, 40) || 'Untitled';
 
-    const data = {
-        name,
-        type: currentType,
-        sourcePattern: fieldSource.value.trim(),
-        destination: fieldDest.value.trim(),
-        findText: fieldFind.value.trim(),
-        replaceText: fieldReplace.value.trim(),
-    };
+        const data = {
+            name,
+            type: currentType,
+            sourcePattern: fieldSource.value.trim(),
+            destination: fieldDest.value.trim(),
+            findText: fieldFind.value.trim(),
+            replaceText: fieldReplace.value.trim(),
+        };
 
-    if (!data.sourcePattern) {
-        fieldSource.focus();
-        fieldSource.classList.add('error-shake');
-        setTimeout(() => fieldSource.classList.remove('error-shake'), 600);
-        return;
-    }
+        if (!data.sourcePattern) {
+            fieldSource.focus();
+            fieldSource.classList.add('error-shake');
+            setTimeout(() => fieldSource.classList.remove('error-shake'), 600);
+            return;
+        }
 
-    if (currentType === RULE_TYPES.REPLACE && !data.replaceText) {
-        fieldReplace.focus();
-        fieldReplace.classList.add('error-shake');
-        setTimeout(() => fieldReplace.classList.remove('error-shake'), 600);
-        return;
-    }
+        if (currentType === RULE_TYPES.REPLACE && !data.replaceText) {
+            fieldReplace.focus();
+            fieldReplace.classList.add('error-shake');
+            setTimeout(() => fieldReplace.classList.remove('error-shake'), 600);
+            return;
+        }
 
-    if (id) {
-        await updateRule(Number(id), data);
-    } else {
-        await addRule({...data, enabled: true});
-    }
-    closeModal();
-    await renderTable();
-});
+        if (id) {
+            await updateRule(Number(id), data);
+        } else {
+            await addRule({...data, enabled: true});
+        }
+        closeModal();
+        await renderTable(document.getElementById('searchInput')?.value || '');
+    });
+}
 
 // ── Rules Table ────────────────────────────────────────────────────────────
 const rulesBody = document.getElementById('rulesBody');
@@ -215,6 +208,7 @@ const tableEmpty = document.getElementById('tableEmpty');
 const searchInput = document.getElementById('searchInput');
 
 async function renderTable(query = '') {
+    if (!rulesBody) return;
     let rules = await getRules();
     if (query) {
         const q = query.toLowerCase();
@@ -229,17 +223,16 @@ async function renderTable(query = '') {
     rulesBody.innerHTML = '';
 
     if (rules.length === 0) {
-        tableEmpty.classList.remove('hidden');
+        if (tableEmpty) tableEmpty.classList.remove('hidden');
         return;
     }
-    tableEmpty.classList.add('hidden');
+    if (tableEmpty) tableEmpty.classList.add('hidden');
 
     rules.forEach(rule => {
         const tr = document.createElement('tr');
         tr.className = rule.enabled ? '' : 'disabled-row';
         tr.dataset.id = rule.id;
 
-        // Display logic for table columns
         let sourceDisplay = rule.sourcePattern || '*';
         let destDisplay = rule.destination || '—';
 
@@ -281,13 +274,11 @@ async function renderTable(query = '') {
       </td>
     `;
 
-        // Toggle
         tr.querySelector('input[type=checkbox]').addEventListener('change', async () => {
             await toggleRule(rule.id);
-            await renderTable(searchInput.value);
+            await renderTable(searchInput?.value || '');
         });
 
-        // Toggle Pin
         tr.querySelector('.pin').addEventListener('click', async () => {
             const allRules = await getRules();
             if (!rule.pinned && allRules.filter(r => r.pinned).length >= 5) {
@@ -295,92 +286,100 @@ async function renderTable(query = '') {
                 return;
             }
             await updateRule(rule.id, {pinned: !rule.pinned});
-            await renderTable(searchInput.value);
+            await renderTable(searchInput?.value || '');
         });
 
-        // Edit
         tr.querySelector('.edit').addEventListener('click', async () => {
             const all = await getRules();
             const r = all.find(x => x.id === rule.id);
             if (r) openModal(r);
         });
 
-        // Delete
         tr.querySelector('.delete').addEventListener('click', async () => {
             if (!confirm(`Delete rule "${rule.name}"?`)) return;
             await deleteRule(rule.id);
-            await renderTable(searchInput.value);
+            await renderTable(searchInput?.value || '');
         });
 
         rulesBody.appendChild(tr);
     });
 }
 
-searchInput.addEventListener('input', () => renderTable(searchInput.value));
+if (searchInput) {
+    searchInput.addEventListener('input', () => renderTable(searchInput.value));
+}
 
 // ── Bulk Delete ────────────────────────────────────────────────────────────
-document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
-    if (!confirm('Delete ALL rules? This cannot be undone.')) return;
-    await saveRules([]);
-    await renderTable();
-});
+const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+if (bulkDeleteBtn) {
+    bulkDeleteBtn.addEventListener('click', async () => {
+        if (!confirm('Delete ALL rules? This cannot be undone.')) return;
+        await saveRules([]);
+        await renderTable(searchInput?.value || '');
+    });
+}
 
 // ── Export ─────────────────────────────────────────────────────────────────
-document.getElementById('exportBtn').addEventListener('click', async () => {
-    const rules = await getRules();
-    const json = JSON.stringify(rules, null, 2);
-    const blob = new Blob([json], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `url-rewriter-rules-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
+const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+        const rules = await getRules();
+        const json = JSON.stringify(rules, null, 2);
+        const blob = new Blob([json], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `url-rewriter-rules-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
 
 // ── Import ─────────────────────────────────────────────────────────────────
-document.getElementById('importFile').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    const status = document.getElementById('importStatus');
-    if (!file) return;
+const importFile = document.getElementById('importFile');
+if (importFile) {
+    importFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        const status = document.getElementById('importStatus');
+        if (!file) return;
 
-    status.textContent = '⌛ Processing import...';
-    status.style.color = 'var(--cyan)';
-    status.classList.remove('hidden');
+        if (status) {
+            status.textContent = '⌛ Processing import...';
+            status.style.color = 'var(--cyan)';
+            status.classList.remove('hidden');
+        }
 
-    try {
-        const text = await file.text();
-        const imported = JSON.parse(text);
-        if (!Array.isArray(imported)) throw new Error('Invalid format: Expected a JSON array of rules.');
+        try {
+            const text = await file.text();
+            const imported = JSON.parse(text);
+            if (!Array.isArray(imported)) throw new Error('Invalid format: Expected a JSON array of rules.');
 
-        const existing = await getRules();
-        const existingIds = new Set(existing.map(r => r.id));
+            const existing = await getRules();
+            const merged = [...existing, ...imported.map(rule => ({
+                ...rule,
+                id: Date.now() + Math.floor(Math.random() * 100000), // Ensure fresh IDs for safety
+                enabled: rule.enabled !== undefined ? rule.enabled : true,
+                createdAt: rule.createdAt || Date.now()
+            }))];
 
-        // Sanitize and generate new IDs for collisions
-        const cleanImported = imported.map(rule => ({
-            ...rule,
-            id: (rule.id && !existingIds.has(rule.id)) ? rule.id : (Date.now() + Math.floor(Math.random() * 10000)),
-            enabled: rule.enabled !== undefined ? rule.enabled : true,
-            createdAt: rule.createdAt || Date.now()
-        }));
-
-        const merged = [...existing, ...cleanImported];
-        
-        // Single bulk save call - much more reliable for web bridge
-        await saveRules(merged);
-        
-        status.textContent = `✓ Successfully imported ${cleanImported.length} rules.`;
-        status.style.color = 'var(--green)';
-        
-        setTimeout(() => status.classList.add('hidden'), 4000);
-        await renderTable();
-    } catch (err) {
-        status.style.color = '#ef4444';
-        status.textContent = `✗ Import failed: ${err.message}`;
-        console.error('[ImportError]', err);
-    }
-    e.target.value = '';
-});
+            await saveRules(merged);
+            
+            if (status) {
+                status.textContent = `✓ Successfully imported ${imported.length} rules.`;
+                status.style.color = 'var(--green)';
+                setTimeout(() => status.classList.add('hidden'), 4000);
+            }
+            await renderTable(searchInput?.value || '');
+        } catch (err) {
+            if (status) {
+                status.style.color = '#ef4444';
+                status.textContent = `✗ Import failed: ${err.message}`;
+            }
+            console.error('[ImportError]', err);
+        }
+        e.target.value = '';
+    });
+}
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function escapeHtml(str = '') {
@@ -394,13 +393,17 @@ function badgeLabel(type) {
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     closeModal();
-
-    // Check for auto-filter
     const params = new URLSearchParams(window.location.search);
     const filter = params.get('filter');
-    if (filter) {
+    if (filter && searchInput) {
         searchInput.value = filter;
     }
 
-    await renderTable(searchInput.value);
+    // Attempt several renders as bridge initializes
+    await renderTable(searchInput?.value || '');
+    setTimeout(() => renderTable(searchInput?.value || ''), 100);
+    setTimeout(() => renderTable(searchInput?.value || ''), 600);
 });
+
+// Debug
+window.refreshRules = () => renderTable(searchInput?.value || '');
