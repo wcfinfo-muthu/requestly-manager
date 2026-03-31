@@ -38,20 +38,33 @@ export { webBridgeCall };
 
 export function getRules() {
     return new Promise(resolve => {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            chrome.storage.sync.get({rules: []}, data => resolve(data.rules));
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.get({rules: []}, data => resolve(data.rules || []));
         } else {
-            webBridgeCall({ type: 'GET_RULES' }).then(res => resolve(res.rules || []));
+            webBridgeCall({ type: 'GET_RULES' }).then(res => {
+                if (res && res.error && typeof localStorage !== 'undefined') {
+                    const localData = localStorage.getItem('requestly_rules_fallback');
+                    resolve(localData ? JSON.parse(localData) : []);
+                } else {
+                    resolve(res.rules || []);
+                }
+            });
         }
     });
 }
 
 export function saveRules(rules) {
     return new Promise(resolve => {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
             chrome.storage.sync.set({rules}, resolve);
         } else {
-            webBridgeCall({ type: 'SET_RULES', rules }).then(resolve);
+            // Use the bulk handler for reliability over the bridge
+            webBridgeCall({ type: 'SET_RULES_BULK', rules }).then(res => {
+                if (res && res.error && typeof localStorage !== 'undefined') {
+                    localStorage.setItem('requestly_rules_fallback', JSON.stringify(rules));
+                }
+                resolve();
+            });
         }
     });
 }
