@@ -7,10 +7,10 @@
 
     // ── Web App Bridge ───────────────────────────────────────────────────────
     window.addEventListener('message', (event) => {
-        // Origins allowed to manage rules via the bridge
-        const ALLOWED_ORIGINS = [
-            'https://muthukrishnanperumal.github.io',
-            'http://muthukrishnanperumal.github.io' // Supporting both if needed
+        // Origins allowed to manage rules via the bridge - using global CONFIG if available
+        const ALLOWED_ORIGINS = (window.CONFIG && window.CONFIG.ALLOWED_ORIGINS) ? window.CONFIG.ALLOWED_ORIGINS : [
+            'https://wcfinfo-muthu.github.io',
+            'http://wcfinfo-muthu.github.io'
         ];
         
         if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
