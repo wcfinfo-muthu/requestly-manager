@@ -53,8 +53,13 @@ masterToggle.addEventListener('change', () => {
 
 // Sync UI if changed in another popup/tab
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'sync' && changes.extensionEnabled !== undefined) {
-        if (masterToggle) masterToggle.checked = changes.extensionEnabled.newValue;
+    if (area === 'sync') {
+        if (changes.extensionEnabled !== undefined) {
+            if (masterToggle) masterToggle.checked = changes.extensionEnabled.newValue;
+        }
+        if (changes.rules !== undefined) {
+            renderRules();
+        }
     }
 });
 
