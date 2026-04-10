@@ -20,11 +20,11 @@
         "default_title": "Requestly: Browser Request Controller"
     },
     "options_ui": {
-        "page": "src/ui/options.html",
+        "page": "index.html",
         "open_in_tab": true
     },
     "oauth2": {
-        "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        "client_id": "xxxx.apps.googleusercontent.com",
         "scopes": [
             "https://www.googleapis.com/auth/drive.file",
             "https://www.googleapis.com/auth/userinfo.email"

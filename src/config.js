@@ -13,23 +13,9 @@ function getManagerUrl() {
 }
 
 const CONFIG_DATA = {
-    // Local options page
-    MANAGER_URL: getManagerUrl(),
-
-    // Security: Only allow communication with these origins
-    ALLOWED_ORIGINS: [
-        'https://wcfinfo-muthu.github.io',
-        'http://wcfinfo-muthu.github.io'
-    ],
-
-    // Versioning
-    VERSION: '1.0.0'
+    // MANAGER_URL: getManagerUrl()
+    MANAGER_URL: 'https://wcfinfo-muthu.github.io/requestly-manager',
 };
-
-// Export for Modules (background, popup, index)
-if (typeof exports !== 'undefined' || (typeof module !== 'undefined' && module.exports)) {
-    // This is for environments that support exports (not standard in browsers without bundlers)
-}
 
 // Global attachment for content scripts and simple scripts
 if (typeof window !== 'undefined') {

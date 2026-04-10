@@ -116,12 +116,10 @@ import {CONFIG} from './config.js';
     // ── Web App Bridge ───────────────────────────────────────────────────────
 
     window.addEventListener('message', (event) => {
-        // Get allowed origins from CONFIG or use null
-        let ALLOWED_ORIGINS = null;
-
-        if (Array.isArray(CONFIG.ALLOWED_ORIGINS)) {
-            ALLOWED_ORIGINS = CONFIG.ALLOWED_ORIGINS;
-        }
+        const ALLOWED_ORIGINS = [
+            'https://wcfinfo-muthu.github.io',
+            'http://wcfinfo-muthu.github.io'
+        ];
 
         if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
 

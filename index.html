@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Requestly: Browser Request Controller</title>
+    <link rel="stylesheet" href="src/ui/options.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <img src="../../icons/app48.png" alt="logo" class="sidebar-logo" />
+        <span class="sidebar-title">URL <span>Rewriter</span></span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="rules">⚡&nbsp; Rules</a>
+        <a href="#" class="nav-item" data-page="import">⇅&nbsp; Import / Export</a>
+        <a href="#" class="nav-item" data-page="sync-history">📊&nbsp; Sync History</a>
+        <a href="#" class="nav-item" data-page="settings">⚙️&nbsp; Settings</a>
+        <a href="#" class="nav-item" data-page="about">◎&nbsp; About</a>
+    </nav>
+    <div class="sidebar-status-wrap">
+        <div class="status-indicator" id="extStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Checking…</span>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <label class="master-toggle-wrap">
+            <span>Extension Enabled</span>
+            <label class="toggle">
+                <input type="checkbox" id="masterToggle" checked />
+                <span class="slider"></span>
+            </label>
+        </label>
+
+        <!-- Google Sync Section -->
+        <div class="google-sync-section" id="googleSyncSection">
+            <div class="sync-status" id="syncStatus">
+                <span class="sync-dot"></span>
+                <span class="sync-text">Not synced</span>
+            </div>
+            <button class="btn btn-google" id="googleLoginBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                <button class="btn btn-outline" id="googleLogoutBtn" style="display: none; flex: 1; font-size: 10px; padding: 6px;">
+                    Sign out
+                </button>
+                <button class="btn btn-outline" id="forceSyncBtn" style="display: none; flex: 1; font-size: 10px; padding: 6px;">
+                    Sync Now
+                </button>
+            </div>
+            <div class="user-profile hidden" id="userProfile">
+                <div class="profile-email" id="profileEmail"></div>
+                <div class="last-sync" id="lastSync"></div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+
+    <!-- ── RULES PAGE ─────────────────────────────────── -->
+    <section class="page active" id="page-rules">
+        <div class="sticky-header">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">URL Rewrite Rules</h1>
+                    <p class="page-subtitle">Define rules to redirect, block, or modify request URLs.</p>
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="btn btn-outline" id="bulkDeleteBtn"><svg width="14" height="14"
+                                                                                          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                                                          stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>Delete All</button>
+                    <button type="button" class="btn btn-primary" id="openModalBtn">+ New Rule</button>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-bar-wrap">
+                <input type="text" class="search-bar" id="searchInput" placeholder="🔍  Search rules by name or pattern…" />
+            </div>
+        </div>
+
+        <!-- Rules Table -->
+        <div class="table-wrap">
+            <table class="rules-table" id="rulesTable">
+                <thead>
+                <tr>
+                    <th style="width:40px"></th>
+                    <th>Name</th>
+                    <th class="text-center">Type</th>
+                    <th>Source Pattern</th>
+                    <th>Destination</th>
+                    <th style="width:100px">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="rulesBody">
+                <!-- rows rendered by JS -->
+                </tbody>
+            </table>
+            <div class="table-empty hidden" id="tableEmpty">
+                <div class="empty-icon">⚡</div>
+                <p>No rules found. Create your first rule!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── IMPORT/EXPORT PAGE ─────────────────────────── -->
+    <section class="page" id="page-import">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Import / Export</h1>
+                <p class="page-subtitle">Backup, restore, and share your rules securely.</p>
+            </div>
+        </div>
+
+        <!-- Main Actions -->
+        <div class="card-grid">
+            <div class="card">
+                <h3 class="card-title">📦 Export Rules</h3>
+                <p class="card-desc">Download all your rules as a JSON file for backup or sharing.</p>
+                <button class="btn btn-primary" id="exportBtn">📥 Export JSON</button>
+                <p class="import-hint" style="margin-top: 8px; font-size: 11px; color: var(--muted);">Creates file: <code>url-rewriter-rules-[date].json</code></p>
+            </div>
+            <div class="card">
+                <h3 class="card-title">📥 Import Rules</h3>
+                <p class="card-desc">Import rules from a previously exported JSON file. Existing rules are preserved.</p>
+                <label class="btn btn-outline" style="cursor:pointer;">
+                    📂 Choose File
+                    <input type="file" accept=".json" id="importFile" style="display:none" />
+                </label>
+                <p class="import-status hidden" id="importStatus"></p>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="card" style="margin-top: 20px;">
+            <h3 class="card-title">ℹ️ How It Works</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                <div>
+                    <h4 style="color: var(--accent); margin-bottom: 8px;">✓ Backup Your Rules</h4>
+                    <p style="font-size: 12px; color: var(--muted);">Click Export to create a backup of all rules. Safe the JSON file to your computer. Perfect for long-term storage.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent); margin-bottom: 8px;">✓ Share with Team</h4>
+                    <p style="font-size: 12px; color: var(--muted);">Export your rules and send the JSON file to teammates. They can import to get the exact same configuration.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent); margin-bottom: 8px;">✓ Restore from Backup</h4>
+                    <p style="font-size: 12px; color: var(--muted);">Import a previously exported JSON file to restore all your rules. No need to recreate them manually.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Format Reference -->
+        <div class="card" style="margin-top: 20px;">
+            <h3 class="card-title">📋 Rule Format Reference</h3>
+            <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">JSON format for all rule types. Copy and modify to create custom rules.</p>
+            <pre class="code-block">[
+  {
+    "name": "Redirect staging to prod",
+    "type": "redirect",
+    "sourcePattern": "*://staging.myapp.com/*",
+    "destination": "https://prod.myapp.com/",
+    "enabled": true,
+    "pinned": true
+  },
+  {
+    "name": "Block ads",
+    "type": "block",
+    "sourcePattern": "*://ads.example.com/*",
+    "enabled": true,
+    "pinned": false
+  },
+  {
+    "name": "Replace hostname",
+    "type": "replace",
+    "sourcePattern": "*://dev.example.com/*",
+    "findText": "dev.example.com",
+    "replaceText": "prod.example.com",
+    "enabled": true,
+    "pinned": false
+  },
+  {
+    "name": "Add auth header",
+    "type": "headers",
+    "sourcePattern": "*://api.example.com/*",
+    "headersAdd": { "Authorization": "Bearer TOKEN" },
+    "headersRemove": ["Cookie"],
+    "headersModify": { "User-Agent": "Custom" },
+    "enabled": true,
+    "pinned": false
+  },
+  {
+    "name": "Mock API response",
+    "type": "response",
+    "sourcePattern": "*://api.example.com/data",
+    "responseStatus": 200,
+    "responseBody": { "message": "mocked response" },
+    "enabled": true,
+    "pinned": false
+  }
+]</pre>
+        </div>
+
+        <!-- Tips & Safety -->
+        <div class="card" style="margin-top: 20px;">
+            <h3 class="card-title">💡 Tips & Safety</h3>
+            <ul style="font-size: 12px; color: var(--muted); line-height: 1.8;">
+                <li><strong>Regular backups:</strong> Export your rules weekly to prevent data loss</li>
+                <li><strong>JSON validation:</strong> Ensure JSON is valid before importing (use online validator)</li>
+                <li><strong>Merge behavior:</strong> Import merges with existing rules, doesn't replace them</li>
+                <li><strong>Sensitive data:</strong> Don't export if rules contain passwords or tokens</li>
+                <li><strong>File naming:</strong> Auto-generated filenames include date for easy organization</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ── SYNC HISTORY PAGE ─────────────────────────── -->
+    <section class="page" id="page-sync-history">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Sync History</h1>
+                <p class="page-subtitle">Track all synchronization operations with Google Drive. Monitor your rule backups and cloud updates.</p>
+            </div>
+        </div>
+
+        <!-- Sync Statistics Cards -->
+        <div class="sync-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📤</div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Syncs</span>
+                    <span class="stat-value" id="syncHistoryTotal">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✓</div>
+                <div class="stat-info">
+                    <span class="stat-label">Successful</span>
+                    <span class="stat-value" id="syncHistorySuccess">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-info">
+                    <span class="stat-label">Failed</span>
+                    <span class="stat-value" id="syncHistoryFailed">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-info">
+                    <span class="stat-label">Last Sync</span>
+                    <span class="stat-value" id="syncHistoryLastTime">Never</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="history-controls">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="text" class="search-bar" id="syncHistoryFilter" placeholder="🔍 Filter sync history..." style="flex: 1; max-width: 400px;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline" id="refreshHistoryBtn">🔄 Refresh</button>
+                <button class="btn btn-outline" id="clearHistoryBtn" style="border-color: #ef4444; color: #ef4444;">🗑️ Clear History</button>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="table-wrap">
+            <table class="history-table">
+                <thead>
+                <tr>
+                    <th style="width: 120px;">Time</th>
+                    <th style="width: 100px;">Type</th>
+                    <th style="width: 80px;">Rules</th>
+                    <th style="width: 100px;">Status</th>
+                    <th>Details</th>
+                    <th style="width: 80px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="historyBody">
+                <!-- Rows rendered by JS -->
+                </tbody>
+            </table>
+
+            <!-- Empty State -->
+            <div class="table-empty hidden" id="historyEmpty">
+                <div class="empty-icon" style="font-size: 48px;">📊</div>
+                <h3 style="color: var(--text); margin: 16px 0 8px;">No Sync History Yet</h3>
+                <p style="color: var(--muted); margin-bottom: 16px;">Your synchronization history will appear here once you enable Google Drive sync and sync your rules.</p>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <p style="font-size: 13px; color: var(--muted-2);">💡 First sync coming soon...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Information Card -->
+        <div class="card" style="margin-top: 20px; background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2);">
+            <h3 style="color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>ℹ️</span> How Sync Works
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; font-size: 12px; color: var(--muted);">
+                <div>
+                    <strong style="color: var(--text);">📤 Upload</strong>
+                    <p>Your rules are backed up to Google Drive every 5 minutes (or custom interval)</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">🔄 Sync</strong>
+                    <p>Changes sync automatically across all your devices signed in with the same Google account</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">🛡️ Conflict Resolution</strong>
+                    <p>If conflicts occur, your chosen strategy (Merge, Local Wins, Remote Wins, Manual) applies</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">⏮️ Recovery</strong>
+                    <p>Sync history helps you track changes. Each entry shows what was synced and when</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── SETTINGS PAGE ──────────────────────────────── -->
+    <section class="page" id="page-settings">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Settings</h1>
+                <p class="page-subtitle">Configure sync behavior and preferences.</p>
+            </div>
+        </div>
+
+        <div class="settings-grid">
+            <!-- Auto-Sync Settings -->
+            <div class="settings-card">
+                <h3 class="settings-title">⏲️ Auto-Sync</h3>
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="autoSyncToggle" checked />
+                        <span>Enable automatic syncing</span>
+                    </label>
+                    <p class="setting-hint">When enabled, rules sync with Google Drive every N minutes.</p>
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Sync Interval (minutes)</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="syncIntervalSlider" min="1" max="60" value="5" style="flex: 1;">
+                        <span id="syncIntervalValue">5</span>
+                    </div>
+                    <p class="setting-hint">Recommended: 5 minutes. Higher values save battery, lower values keep data fresher.</p>
+                </div>
+            </div>
+
+            <!-- Conflict Resolution Settings -->
+            <div class="settings-card">
+                <h3 class="settings-title">⚖️ Conflict Resolution</h3>
+                <div class="setting-item">
+                    <label class="setting-label">Strategy</label>
+                    <div class="strategy-selector">
+                        <label class="strategy-option">
+                            <input type="radio" name="conflictStrategy" value="merge" checked />
+                            <div>
+                                <strong>Merge</strong>
+                                <span class="hint">Intelligently combine local and cloud rules (default)</span>
+                            </div>
+                        </label>
+                        <label class="strategy-option">
+                            <input type="radio" name="conflictStrategy" value="local" />
+                            <div>
+                                <strong>Local Wins</strong>
+                                <span class="hint">Always keep local rules, ignore cloud</span>
+                            </div>
+                        </label>
+                        <label class="strategy-option">
+                            <input type="radio" name="conflictStrategy" value="remote" />
+                            <div>
+                                <strong>Remote Wins</strong>
+                                <span class="hint">Always use cloud rules, overwrite local</span>
+                            </div>
+                        </label>
+                        <label class="strategy-option">
+                            <input type="radio" name="conflictStrategy" value="manual" />
+                            <div>
+                                <strong>Manual</strong>
+                                <span class="hint">Ask me to choose when conflicts occur</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Statistics -->
+            <div class="settings-card">
+                <h3 class="settings-title">📈 Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Last Sync</span>
+                        <span class="stat-value" id="statLastSync">Never</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Syncs</span>
+                        <span class="stat-value" id="statTotalSyncs">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Local Rules</span>
+                        <span class="stat-value" id="statRuleCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value" id="statStatus">Idle</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="settings-card danger">
+                <h3 class="settings-title">⚠️ Danger Zone</h3>
+                <button class="btn btn-danger" id="logoutAllBtn">Sign out from Google</button>
+                <p class="setting-hint">This will stop syncing with Google Drive. You can sign in again anytime.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── ABOUT PAGE ─────────────────────────────────── -->
+    <section class="page" id="page-about">
+        <div class="page-header">
+            <h1 class="page-title">About</h1>
+            <p class="page-subtitle">Control browser requests with powerful, privacy-first tools.</p>
+        </div>
+
+        <div class="about-grid">
+            <!-- Hero Column -->
+            <div class="about-hero">
+                <div class="hero-card">
+                    <img src="../../icons/app128.png" alt="icon" class="hero-logo" />
+                    <div class="hero-info">
+                        <h2 class="hero-name">Requestly <span>Pro</span></h2>
+                        <span class="hero-ver">v1.0.0</span>
+                    </div>
+                    <p class="hero-desc">High-performance request manipulation engine for Chrome. Built for developers, by developers. Engineered for privacy and precision.</p>
+                </div>
+
+                <div class="system-card">
+                    <div class="sys-item">
+                        <span class="sys-label">Engine</span>
+                        <span class="sys-val">DeclarativeNetRequest V3</span>
+                    </div>
+                    <div class="sys-item">
+                        <span class="sys-label">Latency</span>
+                        <span class="sys-val">&lt; 1ms per rule</span>
+                    </div>
+                    <div class="sys-item">
+                        <span class="sys-label">Max Rules</span>
+                        <span class="sys-val">200+ rules</span>
+                    </div>
+                    <div class="sys-item">
+                        <span class="sys-label">Cloud Sync</span>
+                        <span class="sys-val">Google Drive</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Column -->
+            <div class="about-main">
+                <!-- All 5 Rule Types -->
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--accent); font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">🎯 Rule Types</h3>
+                    <div class="feature-card-grid">
+                        <div class="feat-card">
+                            <div class="feat-head"><span class="feat-icon cyan">→</span>
+                                <h3>Redirect</h3>
+                            </div>
+                            <p>Route requests between staging and production. Use wildcards and capture groups for dynamic rewrites.</p>
+                        </div>
+                        <div class="feat-card">
+                            <div class="feat-head"><span class="feat-icon mag">✕</span>
+                                <h3>Block</h3>
+                            </div>
+                            <p>Zero-latency termination for trackers, ads, and unwanted requests. Transparent to the user.</p>
+                        </div>
+                        <div class="feat-card">
+                            <div class="feat-head"><span class="feat-icon amber">⇄</span>
+                                <h3>Replace</h3>
+                            </div>
+                            <p>Find and replace text in URLs with regex support. Perfect for hostname substitution.</p>
+                        </div>
+                        <div class="feat-card">
+                            <div class="feat-head"><span class="feat-icon" style="color: #06b6d4;">⚙</span>
+                                <h3>Headers</h3>
+                            </div>
+                            <p>Add, remove, or modify HTTP headers. Inject auth tokens or override User-Agent dynamically.</p>
+                        </div>
+                        <div class="feat-card">
+                            <div class="feat-head"><span class="feat-icon" style="color: #8b5cf6;">📦</span>
+                                <h3>Mock Response</h3>
+                            </div>
+                            <p>Mock API endpoints with custom status codes and JSON responses. Test without backends.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cloud Features -->
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--accent); font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">☁️ Cloud Features</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px; border-radius: 6px;">
+                            <strong style="color: var(--green);">📤 Auto-Sync</strong>
+                            <p style="font-size: 11px; color: var(--muted); margin-top: 4px;">Sync rules to Google Drive every 5 minutes</p>
+                        </div>
+                        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 6px;">
+                            <strong style="color: #3b82f6;">🔄 Multi-Device</strong>
+                            <p style="font-size: 11px; color: var(--muted); margin-top: 4px;">Access same rules on all devices</p>
+                        </div>
+                        <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); padding: 12px; border-radius: 6px;">
+                            <strong style="color: var(--signal);">⚡ Conflict Resolution</strong>
+                            <p style="font-size: 11px; color: var(--muted); margin-top: 4px;">4 strategies for handling conflicts</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips -->
+                <div class="tip-banner">
+                    <span class="tip-icon">💡</span>
+                    <div class="tip-content">
+                        <strong>Pro Tip: URL Patterns</strong>
+                        <p>Use <code>*://example.com/*</code> to match any protocol. Wildcards become <code>$1</code>, <code>$2</code> in destination for powerful dynamic routing.</p>
+                    </div>
+                </div>
+
+                <div class="tip-banner">
+                    <span class="tip-icon">📌</span>
+                    <div class="tip-content">
+                        <strong>Quick Access</strong>
+                        <p>Pin up to <code>5 rules</code> for instant access in the popup menu. Toggle them on/off without opening settings.</p>
+                    </div>
+                </div>
+
+                <div class="tip-banner">
+                    <span class="tip-icon">🔒</span>
+                    <div class="tip-content">
+                        <strong>Privacy First</strong>
+                        <p>All processing happens locally. Tokens encrypted. No tracking or analytics. <a href="#" style="color: var(--signal); text-decoration: none;">View source →</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ── ADD / EDIT MODAL ───────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">New Rule</h2>
+            <button type="button" class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editRuleId" />
+            <div class="field">
+                <label class="label">Rule Name</label>
+                <input type="text" class="input" id="fieldName" placeholder="e.g. Redirect staging to prod" />
+            </div>
+            <div class="field">
+                <label class="label">Rule Type</label>
+                <div class="type-selector" id="typeSelector">
+                    <button type="button" class="type-btn active" data-type="redirect">→ Redirect</button>
+                    <button type="button" class="type-btn" data-type="block">✕ Block</button>
+                    <button type="button" class="type-btn" data-type="replace">⇄ Find & Replace</button>
+                    <button type="button" class="type-btn" data-type="headers">⚙ Headers</button>
+                    <button type="button" class="type-btn" data-type="response">📦 Mock Response</button>
+                </div>
+            </div>
+            <div class="field" id="sourceField">
+                <label class="label">URL Pattern (Filter)</label>
+                <input type="text" class="input" id="fieldSource" placeholder="*://*.example.com/*" />
+                <p class="field-hint">Intercept URLs by <b>Contains</b> (example), <b>Wildcard</b> (<code>*</code>) or <b>Regex</b> (<code>/regex/</code>). Each <code>*</code> becomes <code>$1</code>, <code>$2</code>, etc.</p>
+            </div>
+            <div class="field" id="destinationField">
+                <label class="label">Redirect To</label>
+                <input type="text" class="input" id="fieldDestination" placeholder="https://$2.new-domain.com/$3" />
+                <p class="field-hint">What is the destination? Each <code>*</code> above can be replaced with its respective <code>$1</code>. (Main page only)</p>
+            </div>
+            <div class="field hidden" id="findField">
+                <label class="label">Find Text</label>
+                <input type="text" class="input" id="fieldFind" placeholder="build-dev" />
+                <p class="field-hint">Find a substring to replace (e.g. <code>build-dev</code>). <b>Keep empty</b> if using Regex above or if URL Pattern and Find Text are the same.</p>
+            </div>
+            <div class="field hidden" id="replaceField">
+                <label class="label">Replace With</label>
+                <input type="text" class="input" id="fieldReplace" placeholder="build-prod" />
+                <p class="field-hint">What should it become? Use <code>$1</code>, <code>$2</code> etc. if using Regex above.</p>
+            </div>
+            <div class="field hidden" id="headersField">
+                <label class="label">Headers Configuration</label>
+                <!-- Headers editor will be rendered here by JavaScript -->
+            </div>
+            <div class="field hidden" id="responseField">
+                <label class="label">Mock Response</label>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <div style="flex: 0.5;">
+                        <label style="font-size: 11px; color: var(--muted);">Status</label>
+                        <input type="number" name="responseStatus" class="input" placeholder="200" value="200" min="100" max="599" style="margin-top: 4px;" />
+                    </div>
+                </div>
+                <textarea name="responseBody" class="input response-textarea" placeholder='{"message": "mocked response"}' style="font-family: var(--mono); font-size: 12px; min-height: 150px;"></textarea>
+                <p class="field-hint">JSON or plain text response body. Automatically parsed as JSON if it starts with { or [.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelModalBtn">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveRuleBtn">Save Rule</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="src/ui/options.js"></script>
+</body>
+
+</html>

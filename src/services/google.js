@@ -12,7 +12,7 @@
  * 5. Update CLIENT_ID in this file with your credentials
  */
 
-const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE'; // TODO: Replace with actual client ID
+const CLIENT_ID = 'xxxx.apps.googleusercontent.com'; // TODO: Replace with actual client ID
 const REDIRECT_URI = chrome.identity.getRedirectURL('provider_callback');
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file',  // Limited Drive access
