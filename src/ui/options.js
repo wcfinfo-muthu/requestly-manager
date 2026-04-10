@@ -675,12 +675,21 @@ let GoogleDrive = null;
 
 async function loadGoogleServices() {
     try {
+        console.log('[loadGoogleServices] Starting...');
         const module = await import('../services/google.js');
+        console.log('[loadGoogleServices] Module loaded:', module);
+
         GoogleAuth = module.GoogleAuth;
         GoogleDrive = module.GoogleDrive;
+
+        console.log('[loadGoogleServices] GoogleAuth loaded:', !!GoogleAuth);
+        console.log('[loadGoogleServices] GoogleDrive loaded:', !!GoogleDrive);
+
         await initializeGoogleUI();
+        console.log('[loadGoogleServices] UI initialized successfully');
     } catch (error) {
-        console.warn('Google services not available:', error);
+        console.error('[loadGoogleServices] Failed to load:', error);
+        console.error('[loadGoogleServices] Error stack:', error.stack);
     }
 }
 
@@ -701,15 +710,21 @@ async function initializeGoogleUI() {
             loginBtn.disabled = true;
             loginBtn.textContent = 'Signing in...';
 
-            if (GoogleAuth) {
-                await GoogleAuth.login();
-                await updateGoogleUIState();
-                // Wait a moment for sync to initialize
-                setTimeout(() => updateSyncUI(), 500);
+            console.log('[LoginBtn] GoogleAuth available:', !!GoogleAuth);
+            if (!GoogleAuth) {
+                throw new Error('GoogleAuth module not loaded');
             }
+
+            console.log('[LoginBtn] Starting OAuth login...');
+            await GoogleAuth.login();
+
+            console.log('[LoginBtn] Login successful, updating UI...');
+            await updateGoogleUIState();
+            // Wait a moment for sync to initialize
+            setTimeout(() => updateSyncUI(), 500);
         } catch (error) {
-            console.error('Login failed:', error);
-            alert('Login failed. Make sure to configure Google OAuth credentials.');
+            console.error('[LoginBtn] Login failed:', error);
+            alert('Login failed: ' + error.message);
         } finally {
             loginBtn.disabled = false;
             loginBtn.textContent = 'Sign in with Google';
