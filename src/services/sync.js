@@ -91,7 +91,7 @@ export const SyncService = {
         return new Promise(resolve => {
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.get('sync_options', data => {
-                    if (data.sync_options) {
+                    if (data && data.sync_options) {
                         this.options = { ...this.options, ...data.sync_options };
                     }
                     resolve();
@@ -407,7 +407,7 @@ export const SyncService = {
             return new Promise(resolve => {
                 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                     chrome.storage.sync.get('sync_history', data => {
-                        const versions = (data.sync_history || []).slice(-99); // Keep last 100
+                        const versions = (data && data.sync_history ? data.sync_history : []).slice(-99); // Keep last 100
                         versions.push(history);
                         chrome.storage.sync.set({ sync_history: versions }, resolve);
                     });
@@ -436,7 +436,7 @@ export const SyncService = {
         return new Promise(resolve => {
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.get('sync_history', data => {
-                    resolve(data.sync_history || []);
+                    resolve(data && data.sync_history ? data.sync_history : []);
                 });
             } else {
                 // Fallback to localStorage
@@ -471,7 +471,7 @@ export const SyncService = {
         return new Promise(resolve => {
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.get('rules', data => {
-                    resolve(data.rules || []);
+                    resolve(data && data.rules ? data.rules : []);
                 });
             } else {
                 // Fallback to localStorage

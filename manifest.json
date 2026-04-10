@@ -24,7 +24,7 @@
         "open_in_tab": true
     },
     "oauth2": {
-        "client_id": "xxxx.apps.googleusercontent.com",
+        "client_id": "19796297908-2tqntf8lsoulqqrc47orh1cihj3v8qpb.apps.googleusercontent.com",
         "scopes": [
             "https://www.googleapis.com/auth/drive.file",
             "https://www.googleapis.com/auth/userinfo.email"

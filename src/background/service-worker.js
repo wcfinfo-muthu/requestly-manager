@@ -1,5 +1,4 @@
 import {buildDNRRules, doesRuleMatchUrl, getRules, toggleRule} from '../rules/engine.js';
-import {CONFIG} from '../config.js';
 import {SyncService} from '../services/sync.js';
 
 const MAX_RULE_ID = 100000;
@@ -70,7 +69,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === 'OPEN_OPTIONS_PAGE') {
         // Use central config for the base URL
-        let url = CONFIG.MANAGER_URL;
+        let url = "https://wcfinfo-muthu.github.io/requestly-manager";
 
         if (message.url) {
             try {

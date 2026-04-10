@@ -1,5 +1,4 @@
 // content.js — Lightweight tab indicator + Response mocking
-import {CONFIG} from './config.js';
 
 (function () {
     const ICON_PATH = chrome.runtime.getURL('icons/app48.png');

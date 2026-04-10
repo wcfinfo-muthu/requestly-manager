@@ -12,7 +12,7 @@
  * 5. Update CLIENT_ID in this file with your credentials
  */
 
-const CLIENT_ID = 'xxxx.apps.googleusercontent.com'; // TODO: Replace with actual client ID
+const CLIENT_ID = '19796297908-2tqntf8lsoulqqrc47orh1cihj3v8qpb.apps.googleusercontent.com'; // TODO: Replace with actual client ID
 const REDIRECT_URI = chrome.identity.getRedirectURL('provider_callback');
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file',  // Limited Drive access
@@ -181,7 +181,7 @@ export const GoogleAuth = {
         return new Promise(resolve => {
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.get('google_tokens', data => {
-                    resolve(data.google_tokens || null);
+                    resolve(data && data.google_tokens ? data.google_tokens : null);
                 });
             } else {
                 // Fallback to localStorage

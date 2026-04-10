@@ -16,11 +16,3 @@ const CONFIG_DATA = {
     // MANAGER_URL: getManagerUrl()
     MANAGER_URL: 'https://wcfinfo-muthu.github.io/requestly-manager',
 };
-
-// Global attachment for content scripts and simple scripts
-if (typeof window !== 'undefined') {
-    window.CONFIG = CONFIG_DATA;
-}
-
-// Standard ES Module export
-export const CONFIG = CONFIG_DATA;

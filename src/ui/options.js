@@ -1060,6 +1060,10 @@ async function renderSyncHistory() {
     if (!historyBody) return;
 
     try {
+        if (!chrome?.runtime) {
+            if (historyEmpty) historyEmpty.classList.remove('hidden');
+            return;
+        }
         const response = await chrome.runtime.sendMessage({ type: 'GET_SYNC_HISTORY' });
         const history = response?.history || [];
 

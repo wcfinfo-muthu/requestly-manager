@@ -1,6 +1,5 @@
 // popup.js — Popup UI logic
 import {getRules, addRule, deleteRule, toggleRule, updateRule, RULE_TYPES} from '../rules/engine.js';
-import {CONFIG} from '../config.js';
 
 const $ = id => document.getElementById(id);
 
@@ -225,7 +224,7 @@ async function renderRules() {
  */
 async function openOptionsPage() {
     try {
-        chrome.tabs.create({ url: CONFIG.MANAGER_URL });
+        chrome.tabs.create({ url: "https://wcfinfo-muthu.github.io/requestly-manager" });
     } catch (error) {
         console.warn('[PopUp] Failed to open:', error)
     }
