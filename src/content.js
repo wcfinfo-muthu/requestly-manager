@@ -1,4 +1,5 @@
 // content.js — Lightweight tab indicator + Response mocking
+import {CONFIG} from './config.js';
 
 (function () {
     const ICON_PATH = chrome.runtime.getURL('icons/app48.png');
@@ -118,8 +119,8 @@
         // Get allowed origins from CONFIG or use null
         let ALLOWED_ORIGINS = null;
 
-        if (window.CONFIG && Array.isArray(window.CONFIG.ALLOWED_ORIGINS)) {
-            ALLOWED_ORIGINS = window.CONFIG.ALLOWED_ORIGINS;
+        if (Array.isArray(CONFIG.ALLOWED_ORIGINS)) {
+            ALLOWED_ORIGINS = CONFIG.ALLOWED_ORIGINS;
         }
 
         if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
