@@ -1,5 +1,6 @@
-import {getRules, buildDNRRules, doesRuleMatchUrl, toggleRule} from './rules.js';
-import {CONFIG} from './config.js';
+import {buildDNRRules, doesRuleMatchUrl, getRules, toggleRule} from '../rules/engine.js';
+import {CONFIG} from '../config.js';
+import {SyncService} from '../services/sync.js';
 
 const MAX_RULE_ID = 100000;
 
@@ -8,7 +9,24 @@ chrome.runtime.onInstalled.addListener(async () => {
     const rules = await getRules();
     await syncDNRRules(rules);
     console.log('[URLRewriter] Extension installed. Rules synced:', rules.length);
+
+    // Initialize sync service
+    try {
+        await SyncService.initialize();
+    } catch (error) {
+        console.error('[Sync] Initialization error:', error);
+    }
 });
+
+// ── Initialize sync service on startup ──────────────────────────────────────
+(async () => {
+    try {
+        await SyncService.initialize();
+        console.log('[Sync] Service initialized');
+    } catch (error) {
+        console.error('[Sync] Startup error:', error);
+    }
+})();
 
 // ── Re-sync whenever storage changes ──────────────────────────────────────
 chrome.storage.onChanged.addListener(async (changes, area) => {
@@ -52,8 +70,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === 'OPEN_OPTIONS_PAGE') {
         // Use central config for the base URL
-        let baseUrl = CONFIG.MANAGER_URL;
-        let url = baseUrl;
+        let url = CONFIG.MANAGER_URL;
 
         if (message.url) {
             try {
@@ -128,6 +145,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         (async () => {
             await toggleRule(message.ruleId);
             sendResponse({success: true});
+        })();
+        return true;
+    }
+
+    // ── Sync Handlers ──
+    if (message.type === 'GET_SYNC_STATE') {
+        sendResponse({syncState: SyncService.getSyncState()});
+        return true;
+    }
+
+    if (message.type === 'FORCE_SYNC') {
+        (async () => {
+            try {
+                await SyncService.forceSync();
+                sendResponse({success: true, syncState: SyncService.getSyncState()});
+            } catch (error) {
+                sendResponse({success: false, error: error.message});
+            }
+        })();
+        return true;
+    }
+
+    if (message.type === 'GET_SYNC_HISTORY') {
+        (async () => {
+            const history = await SyncService.getSyncHistory();
+            sendResponse({history});
+        })();
+        return true;
+    }
+
+    if (message.type === 'UPDATE_SYNC_OPTIONS') {
+        (async () => {
+            SyncService.options = { ...SyncService.options, ...message.options };
+            await SyncService.saveOptions();
+
+            // Restart auto-sync with new settings
+            SyncService.stopAutoSync();
+            if (SyncService.options.autoSync) {
+                SyncService.startAutoSync();
+            }
+
+            sendResponse({success: true});
+        })();
+        return true;
+    }
+
+    if (message.type === 'SYNC_USER_LOGIN') {
+        (async () => {
+            try {
+                await SyncService.onUserLogin();
+                sendResponse({success: true});
+            } catch (error) {
+                console.error('[Sync] Login error:', error);
+                sendResponse({success: false, error: error.message});
+            }
+        })();
+        return true;
+    }
+
+    if (message.type === 'SYNC_USER_LOGOUT') {
+        (async () => {
+            try {
+                await SyncService.onUserLogout();
+                sendResponse({success: true});
+            } catch (error) {
+                console.error('[Sync] Logout error:', error);
+                sendResponse({success: false, error: error.message});
+            }
         })();
         return true;
     }

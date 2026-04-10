@@ -1,23 +1,133 @@
-// content.js — Lightweight tab indicator logic
+// content.js — Lightweight tab indicator + Response mocking
 
 (function () {
     const ICON_PATH = chrome.runtime.getURL('icons/app48.png');
     let activeRule = null;
     let activeCount = 0;
+    let responseRules = [];
+
+    // ── Response Mocking ──────────────────────────────────────────────────────
+    // Load response rules from storage
+    function loadResponseRules() {
+        chrome.storage.sync.get({rules: []}, data => {
+            responseRules = (data.rules || []).filter(r => r.enabled && r.type === 'response');
+        });
+    }
+    loadResponseRules();
+
+    // Listen for storage changes to reload rules
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync' && changes.rules) {
+            loadResponseRules();
+        }
+    });
+
+    // Helper: Match URL against pattern
+    function matchesResponseRule(url, rule) {
+        if (!rule.sourcePattern || !url) return false;
+        const pattern = rule.sourcePattern;
+        const isRegex = pattern.startsWith('/') && pattern.endsWith('/');
+
+        try {
+            if (isRegex) {
+                const re = new RegExp(pattern.slice(1, -1));
+                return re.test(url);
+            } else {
+                const regexStr = pattern
+                    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+                    .replace(/\*/g, '.*');
+                const re = new RegExp(regexStr);
+                return re.test(url);
+            }
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Intercept fetch requests
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const url = args[0]?.toString ? args[0].toString() : String(args[0]);
+        const rule = responseRules.find(r => matchesResponseRule(url, r));
+
+        if (rule) {
+            return Promise.resolve(createMockResponse(rule));
+        }
+
+        return originalFetch.apply(this, args);
+    };
+
+    // Intercept XMLHttpRequest
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...args) {
+        this._interceptUrl = url;
+        return originalXHROpen.apply(this, [method, url, ...args]);
+    };
+
+    const originalXHRSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(...args) {
+        const rule = responseRules.find(r => matchesResponseRule(this._interceptUrl, r));
+
+        if (rule) {
+            // Simulate async XHR behavior
+            setTimeout(() => {
+                // Set response properties
+                Object.defineProperty(this, 'status', { value: rule.responseStatus || 200, configurable: true });
+                Object.defineProperty(this, 'statusText', { value: 'OK', configurable: true });
+                Object.defineProperty(this, 'responseText', { value: typeof rule.responseBody === 'string' ? rule.responseBody : JSON.stringify(rule.responseBody), configurable: true });
+                Object.defineProperty(this, 'response', { value: rule.responseBody, configurable: true });
+                this.readyState = 4;
+
+                // Trigger onreadystatechange
+                if (this.onreadystatechange) {
+                    this.onreadystatechange();
+                }
+
+                // Trigger onload
+                if (this.onload) {
+                    this.onload();
+                }
+            }, 10);
+            return;
+        }
+
+        return originalXHRSend.apply(this, args);
+    };
+
+    // Create a mock Response object
+    function createMockResponse(rule) {
+        const body = typeof rule.responseBody === 'string'
+            ? rule.responseBody
+            : JSON.stringify(rule.responseBody);
+
+        const headers = new Headers(rule.responseHeaders || {});
+        if (!headers.has('Content-Type')) {
+            headers.set('Content-Type', 'application/json');
+        }
+
+        return new Response(body, {
+            status: rule.responseStatus || 200,
+            statusText: 'OK',
+            headers: headers
+        });
+    }
 
     // ── Web App Bridge ───────────────────────────────────────────────────────
     window.addEventListener('message', (event) => {
         // Origins allowed to manage rules via the bridge - using global CONFIG if available
-        const ALLOWED_ORIGINS = (window.CONFIG && window.CONFIG.ALLOWED_ORIGINS) ? window.CONFIG.ALLOWED_ORIGINS : [
+        // Fallback to default origins if CONFIG is not loaded yet
+        const ALLOWED_ORIGINS = (window.CONFIG && window.CONFIG.ALLOWED_ORIGINS) || [
             'https://wcfinfo-muthu.github.io',
             'http://wcfinfo-muthu.github.io'
         ];
-        
+
         if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
 
         // Check if we are on the allowed management page
-        if (!ALLOWED_ORIGINS.some(origin => window.location.origin === origin) && !window.location.protocol.startsWith('chrome-extension')) {
-            return;
+        if (ALLOWED_ORIGINS && Array.isArray(ALLOWED_ORIGINS)) {
+            if (!ALLOWED_ORIGINS.some(origin => window.location.origin === origin) && !window.location.protocol.startsWith('chrome-extension')) {
+                return;
+            }
         }
 
         const type = event.data.type;

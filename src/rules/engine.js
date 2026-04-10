@@ -1,9 +1,11 @@
-// rules.js — Shared rule management utilities
+// rules/engine.js — Shared rule management utilities
 
 export const RULE_TYPES = {
     REDIRECT: 'redirect',
     BLOCK: 'block',
     REPLACE: 'replace',
+    HEADERS: 'headers',
+    RESPONSE: 'response',
 };
 
 // ── Storage helpers ────────────────────────────────────────────────────────
@@ -14,6 +16,25 @@ function webBridgeCall(payload) {
             resolve({});
             return;
         }
+
+        // Check if running in extension context (chrome-extension:// URL)
+        const isExtensionContext = typeof chrome !== 'undefined' &&
+                                   window.location.protocol === 'chrome-extension:';
+
+        // Use native chrome.runtime.sendMessage in extension context
+        if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage(payload, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[Engine] Message error:', chrome.runtime.lastError.message);
+                    resolve({ error: chrome.runtime.lastError.message });
+                } else {
+                    resolve(response || {});
+                }
+            });
+            return;
+        }
+
+        // Use postMessage for web pages
         const id = Date.now() + Math.random().toString();
         const listener = (event) => {
             if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_EXT') return;
@@ -24,7 +45,7 @@ function webBridgeCall(payload) {
         };
         window.addEventListener('message', listener);
         window.postMessage({ source: 'REQUESTLY_WEB', id, ...payload }, '*');
-        
+
         // Timeout in case extension is not installed
         setTimeout(() => {
             window.removeEventListener('message', listener);
@@ -83,6 +104,12 @@ export async function addRule(rule) {
         destination: rule.destination || '',
         findText: rule.findText || '',
         replaceText: rule.replaceText || '',
+        headersAdd: rule.headersAdd || {},
+        headersRemove: rule.headersRemove || [],
+        headersModify: rule.headersModify || {},
+        responseBody: rule.responseBody !== undefined ? rule.responseBody : '',
+        responseStatus: rule.responseStatus || 200,
+        responseHeaders: rule.responseHeaders || {},
         enabled: rule.enabled !== undefined ? rule.enabled : true,
         pinned: rule.pinned !== undefined ? rule.pinned : false,
         createdAt: Date.now(),
@@ -121,7 +148,7 @@ export function buildDNRRules(userRules) {
     let priority = 1;
 
     for (const rule of userRules) {
-        if (!rule.sourcePattern && rule.type !== RULE_TYPES.REPLACE) continue;
+        if (!rule.sourcePattern && rule.type !== RULE_TYPES.REPLACE && rule.type !== RULE_TYPES.HEADERS) continue;
 
         const id = toDNRId(rule.id);
         const resourceTypes = (rule.type === RULE_TYPES.REDIRECT) ? ['main_frame'] : allResourceTypes();
@@ -206,6 +233,71 @@ export function buildDNRRules(userRules) {
                 },
                 condition: {...condition, regexFilter: finalRegex},
             });
+        } else if (rule.type === RULE_TYPES.HEADERS) {
+            const condition = {resourceTypes};
+            let finalRegex = '';
+
+            if (isRegexPattern(rule.sourcePattern)) {
+                finalRegex = cleanRegex(rule.sourcePattern);
+            } else {
+                const hasWildcard = rule.sourcePattern.includes('*');
+                const escapedValue = escapeForRegex(rule.sourcePattern, hasWildcard);
+                finalRegex = hasWildcard ? `^${escapedValue}$`.replace('.*://', '(http|https)://') : escapedValue;
+            }
+
+            // Build modifyHeaders action
+            const requestHeaders = [];
+
+            // Add new headers
+            if (rule.headersAdd && typeof rule.headersAdd === 'object') {
+                for (const [header, value] of Object.entries(rule.headersAdd)) {
+                    if (header.trim()) {
+                        requestHeaders.push({
+                            header: header.trim(),
+                            operation: 'set',
+                            value: String(value)
+                        });
+                    }
+                }
+            }
+
+            // Remove headers
+            if (rule.headersRemove && Array.isArray(rule.headersRemove)) {
+                for (const header of rule.headersRemove) {
+                    if (header.trim()) {
+                        requestHeaders.push({
+                            header: header.trim(),
+                            operation: 'remove'
+                        });
+                    }
+                }
+            }
+
+            // Modify headers (overwrite existing)
+            if (rule.headersModify && typeof rule.headersModify === 'object') {
+                for (const [header, value] of Object.entries(rule.headersModify)) {
+                    if (header.trim()) {
+                        requestHeaders.push({
+                            header: header.trim(),
+                            operation: 'set',
+                            value: String(value)
+                        });
+                    }
+                }
+            }
+
+            // Only add rule if there are headers to modify
+            if (requestHeaders.length > 0) {
+                dnrRules.push({
+                    id,
+                    priority,
+                    action: {
+                        type: 'modifyHeaders',
+                        requestHeaders,
+                    },
+                    condition: {...condition, regexFilter: finalRegex},
+                });
+            }
         }
         priority++;
     }
@@ -310,4 +402,50 @@ function allResourceTypes() {
         'font', 'object', 'xmlhttprequest', 'ping', 'csp_report',
         'media', 'websocket', 'other',
     ];
+}
+
+// ── Response Interception Helper ───────────────────────────────────
+// Export response rules for content script to use
+export function getResponseRules() {
+    return new Promise(resolve => {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.get({rules: []}, data => {
+                const responseRules = (data.rules || [])
+                    .filter(r => r.enabled && r.type === RULE_TYPES.RESPONSE);
+                resolve(responseRules);
+            });
+        } else {
+            getRules().then(rules => {
+                const responseRules = rules.filter(r => r.enabled && r.type === RULE_TYPES.RESPONSE);
+                resolve(responseRules);
+            });
+        }
+    });
+}
+
+export function matchesResponseRule(url, rule) {
+    if (!rule.sourcePattern || !url) return false;
+
+    const pattern = rule.sourcePattern;
+    const isRegex = isRegexPattern(pattern);
+
+    if (isRegex) {
+        try {
+            const re = new RegExp(cleanRegex(pattern));
+            return re.test(url);
+        } catch (e) {
+            return false;
+        }
+    } else {
+        const regexStr = pattern
+            .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*/g, '.*');
+
+        try {
+            const re = new RegExp(regexStr);
+            return re.test(url);
+        } catch (e) {
+            return false;
+        }
+    }
 }

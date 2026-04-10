@@ -10,7 +10,7 @@
         "128": "icons/app128.png"
     },
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "src/ui/popup.html",
         "default_icon": {
             "16": "icons/app16.png",
             "32": "icons/app32.png",
@@ -20,11 +20,18 @@
         "default_title": "Requestly: Browser Request Controller"
     },
     "options_ui": {
-        "page": "index.html",
+        "page": "src/ui/options.html",
         "open_in_tab": true
     },
+    "oauth2": {
+        "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/userinfo.email"
+        ]
+    },
     "background": {
-        "service_worker": "background.js",
+        "service_worker": "src/background/service-worker.js",
         "type": "module"
     },
     "permissions": [
@@ -32,7 +39,8 @@
         "declarativeNetRequestWithHostAccess",
         "storage",
         "activeTab",
-        "downloads"
+        "downloads",
+        "identity"
     ],
     "host_permissions": [
         "<all_urls>"
@@ -52,12 +60,11 @@
                 "<all_urls>"
             ],
             "css": [
-                "content.css"
+                "src/content.css"
             ],
             "js": [
-                "config.js",
-                "rules.js",
-                "content.js"
+                "src/config.js",
+                "src/content.js"
             ],
             "run_at": "document_end"
         }

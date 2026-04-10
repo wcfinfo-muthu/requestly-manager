@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c rules.js)",
+      "Bash(node -c content.js)",
+      "Bash(ls -1 D:/projects/testing/2026/requestly/*.md)",
+      "Bash(mkdir -p D:/projects/testing/2026/requestly/.claude/documentation)",
+      "Bash(mv API_REFERENCE.md CHROME_WEB_STORE_LISTING.md DEVELOPER_SETUP.md FILE_STRUCTURE.md GOOGLE_DRIVE_SYNC_GUIDE.md GOOGLE_OAUTH_SETUP.md IMPLEMENTATION_PROGRESS.md IMPLEMENTATION_STATUS.md MIGRATION_GAP_ANALYSIS.md PROJECT_COMPLETION_SUMMARY.md QUICK_START_TESTING.md TASK_4_COMPLETION.md TASK_7_COMPLETION.md TASK_8_COMPLETION.md TROUBLESHOOTING.md USER_FAQ.md .claude/documentation/)"
+    ]
+  }
+}

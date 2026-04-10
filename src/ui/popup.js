@@ -1,6 +1,6 @@
 // popup.js — Popup UI logic
-import {getRules, addRule, deleteRule, toggleRule, updateRule, RULE_TYPES} from './rules.js';
-import {CONFIG} from './config.js';
+import {getRules, addRule, deleteRule, toggleRule, updateRule, RULE_TYPES} from '../rules/engine.js';
+import {CONFIG} from '../config.js';
 
 const $ = id => document.getElementById(id);
 
@@ -220,9 +220,18 @@ async function renderRules() {
 }
 
 // ── Open options ─────────────────────────────────────────────────────────────
-openOptionsBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: CONFIG.MANAGER_URL });
-});
+/**
+ * Opens options page with fallback logic
+ */
+async function openOptionsPage() {
+    try {
+        chrome.tabs.create({ url: CONFIG.MANAGER_URL });
+    } catch (error) {
+        console.warn('[PopUp] Failed to open:', error)
+    }
+}
+
+openOptionsBtn.addEventListener('click', openOptionsPage);
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function escapeHtml(str) {
@@ -230,7 +239,7 @@ function escapeHtml(str) {
 }
 
 function badgeLabel(type) {
-    return {redirect: 'Redirect', block: 'Block', replace: 'Replace'}[type] || type;
+    return {redirect: 'Redirect', block: 'Block', replace: 'Replace', headers: 'Headers', response: 'Mock Response'}[type] || type;
 }
 
 init();
