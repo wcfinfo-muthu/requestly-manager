@@ -113,21 +113,20 @@
     }
 
     // ── Web App Bridge ───────────────────────────────────────────────────────
+
     window.addEventListener('message', (event) => {
-        // Origins allowed to manage rules via the bridge - using global CONFIG if available
-        // Fallback to default origins if CONFIG is not loaded yet
-        const ALLOWED_ORIGINS = (window.CONFIG && window.CONFIG.ALLOWED_ORIGINS) || [
-            'https://wcfinfo-muthu.github.io',
-            'http://wcfinfo-muthu.github.io'
-        ];
+        // Get allowed origins from CONFIG or use null
+        let ALLOWED_ORIGINS = null;
+
+        if (window.CONFIG && Array.isArray(window.CONFIG.ALLOWED_ORIGINS)) {
+            ALLOWED_ORIGINS = window.CONFIG.ALLOWED_ORIGINS;
+        }
 
         if (event.source !== window || !event.data || event.data.source !== 'REQUESTLY_WEB') return;
 
         // Check if we are on the allowed management page
-        if (ALLOWED_ORIGINS && Array.isArray(ALLOWED_ORIGINS)) {
-            if (!ALLOWED_ORIGINS.some(origin => window.location.origin === origin) && !window.location.protocol.startsWith('chrome-extension')) {
-                return;
-            }
+        if (!ALLOWED_ORIGINS || !ALLOWED_ORIGINS.some(origin => window.location.origin === origin) && !window.location.protocol.startsWith('chrome-extension')) {
+            return;
         }
 
         const type = event.data.type;

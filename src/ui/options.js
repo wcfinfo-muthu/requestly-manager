@@ -1055,6 +1055,7 @@ async function initializeSyncHistory() {
 async function renderSyncHistory() {
     const historyBody = document.getElementById('historyBody');
     const historyEmpty = document.getElementById('historyEmpty');
+    const filterInput = document.getElementById('syncHistoryFilter');
 
     if (!historyBody) return;
 
@@ -1062,38 +1063,92 @@ async function renderSyncHistory() {
         const response = await chrome.runtime.sendMessage({ type: 'GET_SYNC_HISTORY' });
         const history = response?.history || [];
 
+        // Calculate statistics
+        updateSyncHistoryStats(history);
+
+        // Get filter query
+        const filterQuery = filterInput?.value?.toLowerCase() || '';
+
+        // Filter history
+        let filteredHistory = history;
+        if (filterQuery) {
+            filteredHistory = history.filter(event => {
+                const time = new Date(event.timestamp).toLocaleString().toLowerCase();
+                const action = (event.action || '').toLowerCase();
+                const status = event.error ? 'error' : 'success';
+                return time.includes(filterQuery) || action.includes(filterQuery) || status.includes(filterQuery);
+            });
+        }
+
         historyBody.innerHTML = '';
 
-        if (history.length === 0) {
+        if (filteredHistory.length === 0) {
             if (historyEmpty) historyEmpty.classList.remove('hidden');
             return;
         }
 
         if (historyEmpty) historyEmpty.classList.add('hidden');
 
-        // Display last 20 items
-        history.slice(0, 20).forEach(event => {
+        // Display last 50 items
+        filteredHistory.slice(0, 50).forEach(event => {
             const tr = document.createElement('tr');
 
             const time = new Date(event.timestamp).toLocaleString();
-            const action = event.action === 'SYNC_UP' ? 'Upload' : 'Download';
-            const actionClass = event.action === 'SYNC_UP' ? 'sync-up' : 'sync-down';
+            const shortTime = new Date(event.timestamp).toLocaleTimeString();
+            const action = event.action === 'SYNC_UP' ? '📤 Upload' : (event.action === 'SYNC_DOWN' ? '📥 Download' : '🔄 Sync');
             const status = event.error ? 'error' : 'success';
-            const statusText = event.error ? '✗ Error' : '✓ Success';
+            const statusText = event.error ? '✗ Failed' : '✓ Success';
+            const details = event.error ? event.error : (event.ruleCount ? `${event.ruleCount} rules` : 'Synchronized');
 
             tr.innerHTML = `
-                <td class="monospace" title="${time}">${time}</td>
-                <td><span class="history-action ${actionClass}">${action}</span></td>
-                <td>${event.ruleCount || '—'}</td>
-                <td><span class="history-status ${status}">${statusText}</span>${event.error ? ` (${event.error})` : ''}</td>
+                <td style="font-size: 11px; color: var(--muted);" title="${time}">
+                    ${shortTime}
+                </td>
+                <td>${action}</td>
+                <td style="text-align: center; font-weight: 500;">${event.ruleCount || '—'}</td>
+                <td><span class="history-status ${status}">${statusText}</span></td>
+                <td style="font-size: 11px; color: var(--muted);">${details}</td>
+                <td>
+                    <button class="btn-icon" title="View details" data-event="${JSON.stringify(event).replace(/"/g, '&quot;')}">
+                        ⋯
+                    </button>
+                </td>
             `;
 
             historyBody.appendChild(tr);
         });
+
+        // Add filter listener
+        if (filterInput && !filterInput._listenerAdded) {
+            filterInput.addEventListener('input', renderSyncHistory);
+            filterInput._listenerAdded = true;
+        }
     } catch (error) {
         console.error('Failed to render sync history:', error);
         if (historyEmpty) historyEmpty.classList.remove('hidden');
     }
+}
+
+function updateSyncHistoryStats(history) {
+    const totalEl = document.getElementById('syncHistoryTotal');
+    const successEl = document.getElementById('syncHistorySuccess');
+    const failedEl = document.getElementById('syncHistoryFailed');
+    const lastTimeEl = document.getElementById('syncHistoryLastTime');
+
+    if (!totalEl) return;
+
+    const total = history.length;
+    const successful = history.filter(e => !e.error).length;
+    const failed = history.filter(e => e.error).length;
+    const lastEvent = history[0];
+    const lastTime = lastEvent ? new Date(lastEvent.timestamp).toLocaleTimeString() : 'Never';
+
+    if (totalEl) totalEl.textContent = total.toString();
+    if (successEl) successEl.textContent = successful.toString();
+    if (failedEl) failedEl.textContent = failed.toString();
+    if (lastTimeEl) lastTimeEl.textContent = total > 0 ? lastTime : 'Never';
+
+    console.log('[Sync History] Stats - Total:', total, 'Success:', successful, 'Failed:', failed);
 }
 
 // Debug & Utilities

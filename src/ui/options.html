@@ -240,32 +240,104 @@
         <div class="page-header">
             <div>
                 <h1 class="page-title">Sync History</h1>
-                <p class="page-subtitle">View recent synchronization operations with Google Drive.</p>
+                <p class="page-subtitle">Track all synchronization operations with Google Drive. Monitor your rule backups and cloud updates.</p>
             </div>
         </div>
 
-        <div class="history-controls">
-            <button class="btn btn-outline" id="clearHistoryBtn">Clear History</button>
-            <button class="btn btn-outline" id="refreshHistoryBtn">Refresh</button>
+        <!-- Sync Statistics Cards -->
+        <div class="sync-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📤</div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Syncs</span>
+                    <span class="stat-value" id="syncHistoryTotal">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✓</div>
+                <div class="stat-info">
+                    <span class="stat-label">Successful</span>
+                    <span class="stat-value" id="syncHistorySuccess">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-info">
+                    <span class="stat-label">Failed</span>
+                    <span class="stat-value" id="syncHistoryFailed">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-info">
+                    <span class="stat-label">Last Sync</span>
+                    <span class="stat-value" id="syncHistoryLastTime">Never</span>
+                </div>
+            </div>
         </div>
 
+        <!-- Controls -->
+        <div class="history-controls">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="text" class="search-bar" id="syncHistoryFilter" placeholder="🔍 Filter sync history..." style="flex: 1; max-width: 400px;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline" id="refreshHistoryBtn">🔄 Refresh</button>
+                <button class="btn btn-outline" id="clearHistoryBtn" style="border-color: #ef4444; color: #ef4444;">🗑️ Clear History</button>
+            </div>
+        </div>
+
+        <!-- History Table -->
         <div class="table-wrap">
             <table class="history-table">
                 <thead>
                 <tr>
-                    <th style="width: 160px;">Time</th>
-                    <th style="width: 80px;">Action</th>
+                    <th style="width: 120px;">Time</th>
+                    <th style="width: 100px;">Type</th>
                     <th style="width: 80px;">Rules</th>
-                    <th>Status</th>
+                    <th style="width: 100px;">Status</th>
+                    <th>Details</th>
+                    <th style="width: 80px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody id="historyBody">
                 <!-- Rows rendered by JS -->
                 </tbody>
             </table>
+
+            <!-- Empty State -->
             <div class="table-empty hidden" id="historyEmpty">
-                <div class="empty-icon">📊</div>
-                <p>No sync history. Your syncs will appear here.</p>
+                <div class="empty-icon" style="font-size: 48px;">📊</div>
+                <h3 style="color: var(--text); margin: 16px 0 8px;">No Sync History Yet</h3>
+                <p style="color: var(--muted); margin-bottom: 16px;">Your synchronization history will appear here once you enable Google Drive sync and sync your rules.</p>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <p style="font-size: 13px; color: var(--muted-2);">💡 First sync coming soon...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Information Card -->
+        <div class="card" style="margin-top: 20px; background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2);">
+            <h3 style="color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>ℹ️</span> How Sync Works
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; font-size: 12px; color: var(--muted);">
+                <div>
+                    <strong style="color: var(--text);">📤 Upload</strong>
+                    <p>Your rules are backed up to Google Drive every 5 minutes (or custom interval)</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">🔄 Sync</strong>
+                    <p>Changes sync automatically across all your devices signed in with the same Google account</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">🛡️ Conflict Resolution</strong>
+                    <p>If conflicts occur, your chosen strategy (Merge, Local Wins, Remote Wins, Manual) applies</p>
+                </div>
+                <div>
+                    <strong style="color: var(--text);">⏮️ Recovery</strong>
+                    <p>Sync history helps you track changes. Each entry shows what was synced and when</p>
+                </div>
             </div>
         </div>
     </section>

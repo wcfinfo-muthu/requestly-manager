@@ -175,6 +175,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    if (message.type === 'GET_SYNC_OPTIONS') {
+        sendResponse({ options: SyncService.options });
+        return true;
+    }
+
     if (message.type === 'UPDATE_SYNC_OPTIONS') {
         (async () => {
             SyncService.options = { ...SyncService.options, ...message.options };
